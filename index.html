@@ -532,6 +532,24 @@ function icon(id, cls){ return `<svg class="icon ${cls||''}"><use href="#${id}">
 /* ---------- utils ---------- */
 function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
 function choice(arr){return arr[rand(0,arr.length-1)];}
+/* "mazo" sin repetir: reparte todo el banco antes de volver a barajar, y evita que el último
+   de una vuelta sea igual al primero de la siguiente (para que tampoco repita justo al cruzar). */
+const _BAGS={};
+function pickNoRepeat(key, arr){
+  let bag=_BAGS[key];
+  if(!bag || bag.length===0){
+    bag=shuffle(arr);
+    const prevLast=_BAGS[key+'__last'];
+    if(bag.length>1 && bag[0]===prevLast){
+      const j=rand(1,bag.length-1);
+      const tmp=bag[0]; bag[0]=bag[j]; bag[j]=tmp;
+    }
+    _BAGS[key]=bag;
+  }
+  const item=_BAGS[key].shift();
+  _BAGS[key+'__last']=item;
+  return item;
+}
 function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=rand(0,i);[a[i],a[j]]=[a[j],a[i]];}return a;}
 function fmt(n){ if(Number.isInteger(n)) return String(n); return (Math.round(n*100)/100).toString(); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1092,7 +1110,7 @@ function genGeometria(level){
     // 1: teorema de Pitágoras
     (t)=>{
       const k=rand(1,Math.max(1,lerp(1,6,t)));
-      const [a0,b0,c0]=choice(PITAGORICAS);
+      const [a0,b0,c0]=pickNoRepeat('PITAGORICAS', PITAGORICAS);
       const a=a0*k, b=b0*k, c=c0*k;
       if(Math.random()<0.6){
         const wrongs=uniqueWrongsNum(c, ()=>c+choice([-4,-2,-1,1,2,4]));
@@ -1192,7 +1210,7 @@ const TRIG_FACTS=[
 function genTrigonometria(level){
   const impl=[
     (t)=>{
-      const f=choice(TRIG_FACTS);
+      const f=pickNoRepeat('TRIG_FACTS', TRIG_FACTS);
       return { text:f.q, options:mkOptions(f.correct, f.wrongs), explain:f.explain, hint:'Fíjate bien en la posición de cada lado respecto al ángulo recto.' };
     },
     (t)=>{
@@ -1303,7 +1321,7 @@ function genRazonamiento(level){
     // 2: trabajo y tiempo
     (t)=>{
       const k=rand(1,Math.max(1,lerp(1,4,t)));
-      const [x0,y0,c0]=choice(WORK_PAIRS);
+      const [x0,y0,c0]=pickNoRepeat('WORK_PAIRS', WORK_PAIRS);
       const x=x0*k, y=y0*k, c=c0*k;
       const wrongs=uniqueWrongsNum(c, ()=>c+choice([-2,-1,1,2]));
       return { text:`Ale hace un trabajo en ${x} días y su amiga lo hace en ${y} días. Si trabajan juntas, ¿en cuántos días terminan el trabajo?`, options:mkOptions(fmt(c)+' días',wrongs.map(w=>fmt(w)+' días')), explain:`Entre las dos hacen 1/${x}+1/${y} del trabajo por día. Juntas tardan (${x}×${y})÷(${x}+${y}) = ${c} días`, hint:'Súmales sus "velocidades" de trabajo (1 entre sus días) y luego invierte el resultado.' };
@@ -1448,13 +1466,13 @@ const COMPLETAR_ORACION=[
 ];
 function genVerbal(level){
   const impl=[
-    ()=>{ const p=choice(SIN_BASICOS); return { text:`¿Cuál es un sinónimo de "${p.word}"?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" significa lo mismo que "${p.word}".`, hint:'Piensa en una palabra que podrías usar en su lugar sin cambiar el sentido de la frase.' }; },
-    ()=>{ const p=choice(ANT_BASICOS); return { text:`¿Cuál es un antónimo (lo opuesto) de "${p.word}"?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" es lo contrario de "${p.word}".`, hint:'Busca la palabra que signifique totalmente lo opuesto.' }; },
-    ()=>{ const p=choice(ANALOGIAS_SIMPLES); return { text:`${p.a} es a ${p.b}, como ${p.c} es a...`, options:mkOptions(p.correct,p.wrongs), explain:`La relación es ${p.a} → ${p.b}, igual que ${p.c} → ${p.correct}.`, hint:'Primero identifica qué relación hay entre las dos primeras palabras.' }; },
-    ()=>{ const p=choice(SIN_INTERMEDIOS); return { text:`¿Cuál es un sinónimo de "${p.word}"?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" significa lo mismo que "${p.word}".`, hint:'Piensa en una palabra que podrías usar en su lugar sin cambiar el sentido de la frase.' }; },
-    ()=>{ const p=choice(ANT_INTERMEDIOS); return { text:`¿Cuál es un antónimo (lo opuesto) de "${p.word}"?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" es lo contrario de "${p.word}".`, hint:'Busca la palabra que signifique totalmente lo opuesto.' }; },
-    ()=>{ const p=choice(COMPLETAR_ORACION); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`La palabra que mejor completa la oración es "${p.correct}".`, hint:'Lee toda la oración y piensa qué palabra tiene más sentido según el contexto.' }; },
-    ()=>{ const p=choice(ANALOGIAS_COMPLEJAS); return { text:`${p.a} es a ${p.b}, como ${p.c} es a...`, options:mkOptions(p.correct,p.wrongs), explain:`La relación es ${p.a} → ${p.b}, igual que ${p.c} → ${p.correct}.`, hint:'Piensa en el TIPO de relación (causa-efecto, origen, herramienta) antes de buscar la respuesta.' }; }
+    ()=>{ const p=pickNoRepeat('SIN_BASICOS', SIN_BASICOS); return { text:`¿Cuál es un sinónimo de "${p.word}"?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" significa lo mismo que "${p.word}".`, hint:'Piensa en una palabra que podrías usar en su lugar sin cambiar el sentido de la frase.' }; },
+    ()=>{ const p=pickNoRepeat('ANT_BASICOS', ANT_BASICOS); return { text:`¿Cuál es un antónimo (lo opuesto) de "${p.word}"?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" es lo contrario de "${p.word}".`, hint:'Busca la palabra que signifique totalmente lo opuesto.' }; },
+    ()=>{ const p=pickNoRepeat('ANALOGIAS_SIMPLES', ANALOGIAS_SIMPLES); return { text:`${p.a} es a ${p.b}, como ${p.c} es a...`, options:mkOptions(p.correct,p.wrongs), explain:`La relación es ${p.a} → ${p.b}, igual que ${p.c} → ${p.correct}.`, hint:'Primero identifica qué relación hay entre las dos primeras palabras.' }; },
+    ()=>{ const p=pickNoRepeat('SIN_INTERMEDIOS', SIN_INTERMEDIOS); return { text:`¿Cuál es un sinónimo de "${p.word}"?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" significa lo mismo que "${p.word}".`, hint:'Piensa en una palabra que podrías usar en su lugar sin cambiar el sentido de la frase.' }; },
+    ()=>{ const p=pickNoRepeat('ANT_INTERMEDIOS', ANT_INTERMEDIOS); return { text:`¿Cuál es un antónimo (lo opuesto) de "${p.word}"?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" es lo contrario de "${p.word}".`, hint:'Busca la palabra que signifique totalmente lo opuesto.' }; },
+    ()=>{ const p=pickNoRepeat('COMPLETAR_ORACION', COMPLETAR_ORACION); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`La palabra que mejor completa la oración es "${p.correct}".`, hint:'Lee toda la oración y piensa qué palabra tiene más sentido según el contexto.' }; },
+    ()=>{ const p=pickNoRepeat('ANALOGIAS_COMPLEJAS', ANALOGIAS_COMPLEJAS); return { text:`${p.a} es a ${p.b}, como ${p.c} es a...`, options:mkOptions(p.correct,p.wrongs), explain:`La relación es ${p.a} → ${p.b}, igual que ${p.c} → ${p.correct}.`, hint:'Piensa en el TIPO de relación (causa-efecto, origen, herramienta) antes de buscar la respuesta.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -1546,13 +1564,13 @@ const COMPRENSION=[
 ];
 function genComunicacion(level){
   const impl=[
-    ()=>{ const p=choice(TILDES_BASICAS); return { text:'¿Cuál es la forma correctamente tildada?', options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es "${p.correct}".`, hint:'Fíjate en qué sílaba cae la fuerza de la voz al pronunciarla.' }; },
-    ()=>{ const p=choice(ORTOGRAFIA); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`La palabra correcta es "${p.correct}".`, hint:'Lee la oración completa y piensa cómo se escribe bien esa palabra.' }; },
-    ()=>{ const p=choice(PUNTUACION); return { text:'¿Cuál oración tiene la puntuación correcta?', options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es: "${p.correct}"`, hint:'Lee cada opción en voz alta; las comas marcan dónde harías una pequeña pausa.' }; },
-    ()=>{ const p=choice(CATEGORIAS); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`"${p.word}" funciona como ${p.correct.toLowerCase()} en esa oración.`, hint:'Pregúntate: ¿nombra algo (sustantivo), describe algo (adjetivo), indica una acción (verbo), o dice cómo/cuándo/dónde (adverbio)?' }; },
-    ()=>{ const p=choice(CONCORDANCIA); return { text:'¿Cuál oración está bien escrita (concordancia)?', options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es: "${p.correct}"`, hint:'Fíjate si el género y el número combinan entre el sustantivo, el adjetivo y el verbo.' }; },
-    ()=>{ const p=choice(COMPRENSION); return { text:`${p.passage}\n\n${p.q}`, options:mkOptions(p.correct,p.wrongs), explain:`El texto dice: "${p.passage}" — ahí está la respuesta.`, hint:'Busca la parte del texto que responde directamente la pregunta, no agregues información que no está ahí.' }; },
-    ()=>{ const p=choice(TILDES_AVANZADAS); return { text:'¿Cuál es la forma correctamente tildada?', options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es "${p.correct}".`, hint:'Fíjate en qué sílaba cae la fuerza de la voz al pronunciarla.' }; }
+    ()=>{ const p=pickNoRepeat('TILDES_BASICAS', TILDES_BASICAS); return { text:'¿Cuál es la forma correctamente tildada?', options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es "${p.correct}".`, hint:'Fíjate en qué sílaba cae la fuerza de la voz al pronunciarla.' }; },
+    ()=>{ const p=pickNoRepeat('ORTOGRAFIA', ORTOGRAFIA); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`La palabra correcta es "${p.correct}".`, hint:'Lee la oración completa y piensa cómo se escribe bien esa palabra.' }; },
+    ()=>{ const p=pickNoRepeat('PUNTUACION', PUNTUACION); return { text:'¿Cuál oración tiene la puntuación correcta?', options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es: "${p.correct}"`, hint:'Lee cada opción en voz alta; las comas marcan dónde harías una pequeña pausa.' }; },
+    ()=>{ const p=pickNoRepeat('CATEGORIAS', CATEGORIAS); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`"${p.word}" funciona como ${p.correct.toLowerCase()} en esa oración.`, hint:'Pregúntate: ¿nombra algo (sustantivo), describe algo (adjetivo), indica una acción (verbo), o dice cómo/cuándo/dónde (adverbio)?' }; },
+    ()=>{ const p=pickNoRepeat('CONCORDANCIA', CONCORDANCIA); return { text:'¿Cuál oración está bien escrita (concordancia)?', options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es: "${p.correct}"`, hint:'Fíjate si el género y el número combinan entre el sustantivo, el adjetivo y el verbo.' }; },
+    ()=>{ const p=pickNoRepeat('COMPRENSION', COMPRENSION); return { text:`${p.passage}\n\n${p.q}`, options:mkOptions(p.correct,p.wrongs), explain:`El texto dice: "${p.passage}" — ahí está la respuesta.`, hint:'Busca la parte del texto que responde directamente la pregunta, no agregues información que no está ahí.' }; },
+    ()=>{ const p=pickNoRepeat('TILDES_AVANZADAS', TILDES_AVANZADAS); return { text:'¿Cuál es la forma correctamente tildada?', options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es "${p.correct}".`, hint:'Fíjate en qué sílaba cae la fuerza de la voz al pronunciarla.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -1639,13 +1657,13 @@ const PREPOSICIONES=[
 ];
 function genIngles(level){
   const impl=[
-    ()=>{ const p=choice(VOCAB_BASICO); return { text:`¿Cómo se dice "${p.es}" en inglés?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.es}" se dice "${p.correct}" en inglés.`, hint:'Piensa en palabras en inglés que ya conoces parecidas o que hayas escuchado antes.' }; },
-    ()=>{ const p=choice(TO_BE); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es "${p.correct}" porque concuerda con el sujeto.`, hint:'Recuerda: I→am, he/she/it→is, you/we/they→are.' }; },
-    ()=>{ const p=choice(POSESIVOS); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" es el posesivo correcto para ese sujeto.`, hint:'Piensa a quién pertenece la cosa de la que habla la oración.' }; },
-    ()=>{ const p=choice(VOCAB_INTERMEDIO); return { text:`¿Cómo se dice "${p.es}" en inglés?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.es}" se dice "${p.correct}" en inglés.`, hint:'Piensa en palabras en inglés que ya conoces parecidas o que hayas escuchado antes.' }; },
-    ()=>{ const p=choice(PRESENTE_SIMPLE); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`Con "he/she/it" el verbo en presente simple casi siempre lleva -s o -es al final.`, hint:'Fíjate si el sujeto es "he", "she" o "it" — ahí el verbo cambia.' }; },
-    ()=>{ const p=choice(TRADUCIR_ORACIONES); return { text:`Traduce: "${p.es}"`, options:mkOptions(p.correct,p.wrongs), explain:`La traducción correcta es: "${p.correct}"`, hint:'Traduce palabra por palabra primero, y luego ordénalas como se dice en inglés.' }; },
-    ()=>{ const p=choice(PREPOSICIONES); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`Se usa "${p.correct}" en ese caso.`, hint:'"In" = meses/ciudades. "On" = días/superficies. "At" = horas/lugares específicos.' }; }
+    ()=>{ const p=pickNoRepeat('VOCAB_BASICO', VOCAB_BASICO); return { text:`¿Cómo se dice "${p.es}" en inglés?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.es}" se dice "${p.correct}" en inglés.`, hint:'Piensa en palabras en inglés que ya conoces parecidas o que hayas escuchado antes.' }; },
+    ()=>{ const p=pickNoRepeat('TO_BE', TO_BE); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`La forma correcta es "${p.correct}" porque concuerda con el sujeto.`, hint:'Recuerda: I→am, he/she/it→is, you/we/they→are.' }; },
+    ()=>{ const p=pickNoRepeat('POSESIVOS', POSESIVOS); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`"${p.correct}" es el posesivo correcto para ese sujeto.`, hint:'Piensa a quién pertenece la cosa de la que habla la oración.' }; },
+    ()=>{ const p=pickNoRepeat('VOCAB_INTERMEDIO', VOCAB_INTERMEDIO); return { text:`¿Cómo se dice "${p.es}" en inglés?`, options:mkOptions(p.correct,p.wrongs), explain:`"${p.es}" se dice "${p.correct}" en inglés.`, hint:'Piensa en palabras en inglés que ya conoces parecidas o que hayas escuchado antes.' }; },
+    ()=>{ const p=pickNoRepeat('PRESENTE_SIMPLE', PRESENTE_SIMPLE); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`Con "he/she/it" el verbo en presente simple casi siempre lleva -s o -es al final.`, hint:'Fíjate si el sujeto es "he", "she" o "it" — ahí el verbo cambia.' }; },
+    ()=>{ const p=pickNoRepeat('TRADUCIR_ORACIONES', TRADUCIR_ORACIONES); return { text:`Traduce: "${p.es}"`, options:mkOptions(p.correct,p.wrongs), explain:`La traducción correcta es: "${p.correct}"`, hint:'Traduce palabra por palabra primero, y luego ordénalas como se dice en inglés.' }; },
+    ()=>{ const p=pickNoRepeat('PREPOSICIONES', PREPOSICIONES); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`Se usa "${p.correct}" en ese caso.`, hint:'"In" = meses/ciudades. "On" = días/superficies. "At" = horas/lugares específicos.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -1664,7 +1682,7 @@ const PHYS_FACTS=[
 ];
 function genFisica(level){
   const impl=[
-    ()=>{ const f=choice(PHYS_FACTS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las unidades básicas que usamos para medir eso en la vida diaria.' }; },
+    ()=>{ const f=pickNoRepeat('PHYS_FACTS', PHYS_FACTS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las unidades básicas que usamos para medir eso en la vida diaria.' }; },
     (t)=>{
       const v=rand(2,Math.max(2,lerp(4,40,t))), tt=rand(2,Math.max(2,lerp(2,20,t))), d=v*tt;
       if(Math.random()<0.5){
@@ -1774,13 +1792,13 @@ function genMoles(t){
 }
 function genQuimica(level){
   const impl=[
-    ()=>{ const f=choice(QUIM_SIMBOLOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Muchos símbolos vienen del nombre en latín del elemento.' }; },
-    ()=>{ const f=choice(CAMBIOS_ESTADO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué le pasa al hielo, al agua y al vapor.' }; },
-    ()=>{ const p=choice(ATOM_COUNT); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`El número pequeño después de cada elemento (el subíndice) indica cuántos átomos hay.`, hint:'Cuenta el número que está justo después de la letra del elemento.' }; },
+    ()=>{ const f=pickNoRepeat('QUIM_SIMBOLOS', QUIM_SIMBOLOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Muchos símbolos vienen del nombre en latín del elemento.' }; },
+    ()=>{ const f=pickNoRepeat('CAMBIOS_ESTADO', CAMBIOS_ESTADO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué le pasa al hielo, al agua y al vapor.' }; },
+    ()=>{ const p=pickNoRepeat('ATOM_COUNT', ATOM_COUNT); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`El número pequeño después de cada elemento (el subíndice) indica cuántos átomos hay.`, hint:'Cuenta el número que está justo después de la letra del elemento.' }; },
     (t)=>genMoles(t),
-    ()=>{ const f=choice(QUIM_FACTS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que aprendes en la vida diaria sobre el aire y el agua.' }; },
+    ()=>{ const f=pickNoRepeat('QUIM_FACTS', QUIM_FACTS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que aprendes en la vida diaria sobre el aire y el agua.' }; },
     (t)=>genMoles(t),
-    ()=>{ const p=choice(ATOM_COUNT); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`El subíndice después de cada elemento indica cuántos átomos hay.`, hint:'Cuenta el número que está justo después de la letra del elemento.' }; }
+    ()=>{ const p=pickNoRepeat('ATOM_COUNT', ATOM_COUNT); return { text:p.text, options:mkOptions(p.correct,p.wrongs), explain:`El subíndice después de cada elemento indica cuántos átomos hay.`, hint:'Cuenta el número que está justo después de la letra del elemento.' }; }
   ];
   const {stage,t}=stageInfo(level,8);
   if(stage<7) return impl[stage](t);
@@ -1837,13 +1855,13 @@ const HIST_CULTURA=[
 ];
 function genHistoria(level){
   const impl=[
-    ()=>{ const f=choice(HIST_PREHISPANICO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que aprendiste sobre las culturas antiguas del Perú, antes de los incas y durante su imperio.' }; },
-    ()=>{ const f=choice(HIST_CONQUISTA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el periodo en que llegaron los españoles y fundaron el virreinato.' }; },
-    ()=>{ const f=choice(HIST_INDEPENDENCIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los próceres y batallas que nos dieron la independencia.' }; },
-    ()=>{ const f=choice(HIST_REPUBLICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que pasó en el Perú después de independizarse.' }; },
-    ()=>{ const f=choice(HIST_UNIVERSAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes eventos de la historia mundial que has estudiado.' }; },
-    ()=>{ const f=choice(HIST_PERSONAJES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Relaciona cada personaje histórico con lo que hizo.' }; },
-    ()=>{ const f=choice(HIST_CULTURA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la cultura y el arte que forman parte de la identidad peruana.' }; }
+    ()=>{ const f=pickNoRepeat('HIST_PREHISPANICO', HIST_PREHISPANICO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que aprendiste sobre las culturas antiguas del Perú, antes de los incas y durante su imperio.' }; },
+    ()=>{ const f=pickNoRepeat('HIST_CONQUISTA', HIST_CONQUISTA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el periodo en que llegaron los españoles y fundaron el virreinato.' }; },
+    ()=>{ const f=pickNoRepeat('HIST_INDEPENDENCIA', HIST_INDEPENDENCIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los próceres y batallas que nos dieron la independencia.' }; },
+    ()=>{ const f=pickNoRepeat('HIST_REPUBLICA', HIST_REPUBLICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que pasó en el Perú después de independizarse.' }; },
+    ()=>{ const f=pickNoRepeat('HIST_UNIVERSAL', HIST_UNIVERSAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes eventos de la historia mundial que has estudiado.' }; },
+    ()=>{ const f=pickNoRepeat('HIST_PERSONAJES', HIST_PERSONAJES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Relaciona cada personaje histórico con lo que hizo.' }; },
+    ()=>{ const f=pickNoRepeat('HIST_CULTURA', HIST_CULTURA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la cultura y el arte que forman parte de la identidad peruana.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -1906,13 +1924,13 @@ const GEO_CLIMA=[
 ];
 function genGeografia(level){
   const impl=[
-    ()=>{ const f=choice(GEO_PERU_REGIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la forma del territorio peruano: mar, montañas y selva.' }; },
-    ()=>{ const f=choice(GEO_PERU_LUGARES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los lugares más famosos del Perú.' }; },
-    ()=>{ const f=choice(GEO_PERU_DEPARTAMENTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el mapa del Perú y sus departamentos.' }; },
-    ()=>{ const f=choice(GEO_MUNDIAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el mapa del mundo.' }; },
-    ()=>{ const f=choice(GEO_CAPITALES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Relaciona cada país con su ciudad capital.' }; },
-    ()=>{ const f=choice(GEO_ACCIDENTES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los lugares más extremos o famosos del planeta.' }; },
-    ()=>{ const f=choice(GEO_CLIMA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el clima y los fenómenos naturales que afectan al Perú.' }; }
+    ()=>{ const f=pickNoRepeat('GEO_PERU_REGIONES', GEO_PERU_REGIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la forma del territorio peruano: mar, montañas y selva.' }; },
+    ()=>{ const f=pickNoRepeat('GEO_PERU_LUGARES', GEO_PERU_LUGARES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los lugares más famosos del Perú.' }; },
+    ()=>{ const f=pickNoRepeat('GEO_PERU_DEPARTAMENTOS', GEO_PERU_DEPARTAMENTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el mapa del Perú y sus departamentos.' }; },
+    ()=>{ const f=pickNoRepeat('GEO_MUNDIAL', GEO_MUNDIAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el mapa del mundo.' }; },
+    ()=>{ const f=pickNoRepeat('GEO_CAPITALES', GEO_CAPITALES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Relaciona cada país con su ciudad capital.' }; },
+    ()=>{ const f=pickNoRepeat('GEO_ACCIDENTES', GEO_ACCIDENTES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los lugares más extremos o famosos del planeta.' }; },
+    ()=>{ const f=pickNoRepeat('GEO_CLIMA', GEO_CLIMA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el clima y los fenómenos naturales que afectan al Perú.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -1976,13 +1994,13 @@ const BIO_ANIMALES=[
 ];
 function genBiologia(level){
   const impl=[
-    ()=>{ const f=choice(BIO_CELULA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las partes más pequeñas que forman a todos los seres vivos.' }; },
-    ()=>{ const f=choice(BIO_REINOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes grupos en que se clasifican los seres vivos.' }; },
-    ()=>{ const f=choice(BIO_SISTEMAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué parte de tu cuerpo hace esa función.' }; },
-    ()=>{ const f=choice(BIO_ECOSISTEMAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en quién se come a quién en la naturaleza.' }; },
-    ()=>{ const f=choice(BIO_GENETICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que hace que te parezcas a tus padres.' }; },
-    ()=>{ const f=choice(BIO_PLANTAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo las plantas producen su propio alimento.' }; },
-    ()=>{ const f=choice(BIO_ANIMALES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las características físicas de cada grupo de animales.' }; }
+    ()=>{ const f=pickNoRepeat('BIO_CELULA', BIO_CELULA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las partes más pequeñas que forman a todos los seres vivos.' }; },
+    ()=>{ const f=pickNoRepeat('BIO_REINOS', BIO_REINOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes grupos en que se clasifican los seres vivos.' }; },
+    ()=>{ const f=pickNoRepeat('BIO_SISTEMAS', BIO_SISTEMAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué parte de tu cuerpo hace esa función.' }; },
+    ()=>{ const f=pickNoRepeat('BIO_ECOSISTEMAS', BIO_ECOSISTEMAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en quién se come a quién en la naturaleza.' }; },
+    ()=>{ const f=pickNoRepeat('BIO_GENETICA', BIO_GENETICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que hace que te parezcas a tus padres.' }; },
+    ()=>{ const f=pickNoRepeat('BIO_PLANTAS', BIO_PLANTAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo las plantas producen su propio alimento.' }; },
+    ()=>{ const f=pickNoRepeat('BIO_ANIMALES', BIO_ANIMALES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las características físicas de cada grupo de animales.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2034,13 +2052,13 @@ function genInteres(t){
 }
 function genEconomia(level){
   const impl=[
-    ()=>{ const f=choice(ECO_CONCEPTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que compramos y vendemos en la vida diaria.' }; },
-    ()=>{ const f=choice(ECO_OFERTA_DEMANDA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué pasa con los precios cuando algo escasea o sobra.' }; },
-    ()=>{ const f=choice(ECO_MERCADOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las etapas: de dónde sale la materia prima, quién la transforma, y quién da el servicio final.' }; },
+    ()=>{ const f=pickNoRepeat('ECO_CONCEPTOS', ECO_CONCEPTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que compramos y vendemos en la vida diaria.' }; },
+    ()=>{ const f=pickNoRepeat('ECO_OFERTA_DEMANDA', ECO_OFERTA_DEMANDA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué pasa con los precios cuando algo escasea o sobra.' }; },
+    ()=>{ const f=pickNoRepeat('ECO_MERCADOS', ECO_MERCADOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las etapas: de dónde sale la materia prima, quién la transforma, y quién da el servicio final.' }; },
     (t)=>genInteres(t),
-    ()=>{ const f=choice(ECO_DINERO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo manejamos el dinero: guardarlo, prestarlo o pagarlo.' }; },
+    ()=>{ const f=pickNoRepeat('ECO_DINERO', ECO_DINERO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo manejamos el dinero: guardarlo, prestarlo o pagarlo.' }; },
     (t)=>genInteres(t),
-    ()=>{ const f=choice(ECO_PBI); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en términos que escuchas en las noticias sobre la economía del país.' }; }
+    ()=>{ const f=pickNoRepeat('ECO_PBI', ECO_PBI); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en términos que escuchas en las noticias sobre la economía del país.' }; }
   ];
   const {stage,t}=stageInfo(level,8);
   if(stage<7) return impl[stage](t);
@@ -2098,13 +2116,13 @@ const LIT_MOVIMIENTOS=[
 ];
 function genLiteratura(level){
   const impl=[
-    ()=>{ const f=choice(LIT_GENEROS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes grupos en que se dividen las obras literarias.' }; },
-    ()=>{ const f=choice(LIT_FIGURAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Fíjate cómo se construye la comparación o la exageración en el ejemplo.' }; },
-    ()=>{ const f=choice(LIT_ESTRUCTURA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se organiza un poema o un cuento por partes.' }; },
-    ()=>{ const f=choice(LIT_AUTORES_PERU); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los escritores peruanos más estudiados en el colegio.' }; },
-    ()=>{ const f=choice(LIT_AUTORES_MUNDO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los escritores clásicos de la literatura universal.' }; },
-    ()=>{ const f=choice(LIT_TEXTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la intención del texto: ¿informa, convence, describe o enseña a hacer algo?' }; },
-    ()=>{ const f=choice(LIT_MOVIMIENTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la época y el estilo en el que se escribió esa obra.' }; }
+    ()=>{ const f=pickNoRepeat('LIT_GENEROS', LIT_GENEROS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes grupos en que se dividen las obras literarias.' }; },
+    ()=>{ const f=pickNoRepeat('LIT_FIGURAS', LIT_FIGURAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Fíjate cómo se construye la comparación o la exageración en el ejemplo.' }; },
+    ()=>{ const f=pickNoRepeat('LIT_ESTRUCTURA', LIT_ESTRUCTURA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se organiza un poema o un cuento por partes.' }; },
+    ()=>{ const f=pickNoRepeat('LIT_AUTORES_PERU', LIT_AUTORES_PERU); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los escritores peruanos más estudiados en el colegio.' }; },
+    ()=>{ const f=pickNoRepeat('LIT_AUTORES_MUNDO', LIT_AUTORES_MUNDO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los escritores clásicos de la literatura universal.' }; },
+    ()=>{ const f=pickNoRepeat('LIT_TEXTOS', LIT_TEXTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la intención del texto: ¿informa, convence, describe o enseña a hacer algo?' }; },
+    ()=>{ const f=pickNoRepeat('LIT_MOVIMIENTOS', LIT_MOVIMIENTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la época y el estilo en el que se escribió esa obra.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2156,13 +2174,13 @@ const ARTE_GENERAL=[
 ];
 function genArte(level){
   const impl=[
-    ()=>{ const f=choice(ARTE_PINTORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los pintores más famosos de la historia del arte.' }; },
-    ()=>{ const f=choice(ARTE_PERU); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las danzas y la música típica del Perú.' }; },
-    ()=>{ const f=choice(ARTE_MUSICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes compositores y géneros musicales.' }; },
-    ()=>{ const f=choice(ARTE_TECNICAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los materiales y formas que usa cada técnica artística.' }; },
-    ()=>{ const f=choice(ARTE_COLORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Imagina mezclar esos colores en tu mente, como con pintura.' }; },
-    ()=>{ const f=choice(ARTE_PATRIMONIO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los lugares históricos más famosos del Perú.' }; },
-    ()=>{ const f=choice(ARTE_GENERAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el vocabulario que se usa alrededor del mundo del arte.' }; }
+    ()=>{ const f=pickNoRepeat('ARTE_PINTORES', ARTE_PINTORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los pintores más famosos de la historia del arte.' }; },
+    ()=>{ const f=pickNoRepeat('ARTE_PERU', ARTE_PERU); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las danzas y la música típica del Perú.' }; },
+    ()=>{ const f=pickNoRepeat('ARTE_MUSICA', ARTE_MUSICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes compositores y géneros musicales.' }; },
+    ()=>{ const f=pickNoRepeat('ARTE_TECNICAS', ARTE_TECNICAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los materiales y formas que usa cada técnica artística.' }; },
+    ()=>{ const f=pickNoRepeat('ARTE_COLORES', ARTE_COLORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Imagina mezclar esos colores en tu mente, como con pintura.' }; },
+    ()=>{ const f=pickNoRepeat('ARTE_PATRIMONIO', ARTE_PATRIMONIO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los lugares históricos más famosos del Perú.' }; },
+    ()=>{ const f=pickNoRepeat('ARTE_GENERAL', ARTE_GENERAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el vocabulario que se usa alrededor del mundo del arte.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2216,13 +2234,13 @@ const CIVICA_GLOBAL=[
 ];
 function genCivica(level){
   const impl=[
-    ()=>{ const f=choice(CIVICA_ESTADO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo está organizado el gobierno del Perú.' }; },
-    ()=>{ const f=choice(CIVICA_DERECHOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que toda persona merece tener o poder hacer.' }; },
-    ()=>{ const f=choice(CIVICA_DEBERES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que nos toca cumplir a cambio de nuestros derechos.' }; },
-    ()=>{ const f=choice(CIVICA_DEMOCRACIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se elige a las autoridades en un país democrático.' }; },
-    ()=>{ const f=choice(CIVICA_INSTITUCIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las siglas de las instituciones públicas que has visto en documentos oficiales.' }; },
-    ()=>{ const f=choice(CIVICA_VALORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los valores que ayudan a que todos convivamos mejor.' }; },
-    ()=>{ const f=choice(CIVICA_GLOBAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las organizaciones que trabajan entre varios países.' }; }
+    ()=>{ const f=pickNoRepeat('CIVICA_ESTADO', CIVICA_ESTADO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo está organizado el gobierno del Perú.' }; },
+    ()=>{ const f=pickNoRepeat('CIVICA_DERECHOS', CIVICA_DERECHOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que toda persona merece tener o poder hacer.' }; },
+    ()=>{ const f=pickNoRepeat('CIVICA_DEBERES', CIVICA_DEBERES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que nos toca cumplir a cambio de nuestros derechos.' }; },
+    ()=>{ const f=pickNoRepeat('CIVICA_DEMOCRACIA', CIVICA_DEMOCRACIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se elige a las autoridades en un país democrático.' }; },
+    ()=>{ const f=pickNoRepeat('CIVICA_INSTITUCIONES', CIVICA_INSTITUCIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las siglas de las instituciones públicas que has visto en documentos oficiales.' }; },
+    ()=>{ const f=pickNoRepeat('CIVICA_VALORES', CIVICA_VALORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los valores que ayudan a que todos convivamos mejor.' }; },
+    ()=>{ const f=pickNoRepeat('CIVICA_GLOBAL', CIVICA_GLOBAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las organizaciones que trabajan entre varios países.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2273,13 +2291,13 @@ const DPCC_METAS=[
 ];
 function genDpcc(level){
   const impl=[
-    ()=>{ const f=choice(DPCC_AUTOCONOCIMIENTO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te conoces y te valoras a ti mismo.' }; },
-    ()=>{ const f=choice(DPCC_RELACIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te relacionas y te comunicas con los demás.' }; },
-    ()=>{ const f=choice(DPCC_DECISIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo tomas decisiones y planeas tu futuro.' }; },
-    ()=>{ const f=choice(DPCC_CIUDADANIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te comportas de forma segura y responsable en internet.' }; },
-    ()=>{ const f=choice(DPCC_SALUD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que necesita tu cuerpo y tu mente para estar bien.' }; },
-    ()=>{ const f=choice(DPCC_VALORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los valores que guían tus acciones aunque nadie te vea.' }; },
-    ()=>{ const f=choice(DPCC_METAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo planificar algo que quieres lograr paso a paso.' }; }
+    ()=>{ const f=pickNoRepeat('DPCC_AUTOCONOCIMIENTO', DPCC_AUTOCONOCIMIENTO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te conoces y te valoras a ti mismo.' }; },
+    ()=>{ const f=pickNoRepeat('DPCC_RELACIONES', DPCC_RELACIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te relacionas y te comunicas con los demás.' }; },
+    ()=>{ const f=pickNoRepeat('DPCC_DECISIONES', DPCC_DECISIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo tomas decisiones y planeas tu futuro.' }; },
+    ()=>{ const f=pickNoRepeat('DPCC_CIUDADANIA', DPCC_CIUDADANIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te comportas de forma segura y responsable en internet.' }; },
+    ()=>{ const f=pickNoRepeat('DPCC_SALUD', DPCC_SALUD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que necesita tu cuerpo y tu mente para estar bien.' }; },
+    ()=>{ const f=pickNoRepeat('DPCC_VALORES', DPCC_VALORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los valores que guían tus acciones aunque nadie te vea.' }; },
+    ()=>{ const f=pickNoRepeat('DPCC_METAS', DPCC_METAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo planificar algo que quieres lograr paso a paso.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2330,13 +2348,13 @@ const CS_GLOBALIZACION=[
 ];
 function genCienciasSociales(level){
   const impl=[
-    ()=>{ const f=choice(CS_SOCIEDAD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grupos humanos más básicos, desde la familia hasta la sociedad.' }; },
-    ()=>{ const f=choice(CS_NORMAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la diferencia entre una regla escrita y una costumbre.' }; },
-    ()=>{ const f=choice(CS_DIVERSIDAD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la variedad de culturas que existen dentro de un mismo país.' }; },
-    ()=>{ const f=choice(CS_INSTITUCIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los lugares e instituciones que organizan la vida en sociedad.' }; },
-    ()=>{ const f=choice(CS_PROBLEMAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los problemas sociales que ves o escuchas en las noticias.' }; },
-    ()=>{ const f=choice(CS_DERECHOS_SOC); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que toda persona merece tener, sin importar su condición.' }; },
-    ()=>{ const f=choice(CS_GLOBALIZACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se conectan los países entre sí hoy en día.' }; }
+    ()=>{ const f=pickNoRepeat('CS_SOCIEDAD', CS_SOCIEDAD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grupos humanos más básicos, desde la familia hasta la sociedad.' }; },
+    ()=>{ const f=pickNoRepeat('CS_NORMAS', CS_NORMAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la diferencia entre una regla escrita y una costumbre.' }; },
+    ()=>{ const f=pickNoRepeat('CS_DIVERSIDAD', CS_DIVERSIDAD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la variedad de culturas que existen dentro de un mismo país.' }; },
+    ()=>{ const f=pickNoRepeat('CS_INSTITUCIONES', CS_INSTITUCIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los lugares e instituciones que organizan la vida en sociedad.' }; },
+    ()=>{ const f=pickNoRepeat('CS_PROBLEMAS', CS_PROBLEMAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los problemas sociales que ves o escuchas en las noticias.' }; },
+    ()=>{ const f=pickNoRepeat('CS_DERECHOS_SOC', CS_DERECHOS_SOC); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que toda persona merece tener, sin importar su condición.' }; },
+    ()=>{ const f=pickNoRepeat('CS_GLOBALIZACION', CS_GLOBALIZACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se conectan los países entre sí hoy en día.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2391,13 +2409,13 @@ const CYT_AMBIENTE=[
 ];
 function genCienciaTec(level){
   const impl=[
-    ()=>{ const f=choice(CYT_METODO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los pasos que sigue un científico para investigar algo.' }; },
-    ()=>{ const f=choice(CYT_INVENTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Relaciona cada científico con su descubrimiento o invento más famoso.' }; },
-    ()=>{ const f=choice(CYT_COMPUTACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las partes y conceptos básicos de una computadora.' }; },
-    ()=>{ const f=choice(CYT_ENERGIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa de dónde viene cada tipo de energía.' }; },
-    ()=>{ const f=choice(CYT_ESPACIO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el Sistema Solar y sus planetas.' }; },
-    ()=>{ const f=choice(CYT_SALUD_TEC); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes avances médicos de la historia.' }; },
-    ()=>{ const f=choice(CYT_AMBIENTE); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo cuidamos (o dañamos) el planeta.' }; }
+    ()=>{ const f=pickNoRepeat('CYT_METODO', CYT_METODO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los pasos que sigue un científico para investigar algo.' }; },
+    ()=>{ const f=pickNoRepeat('CYT_INVENTOS', CYT_INVENTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Relaciona cada científico con su descubrimiento o invento más famoso.' }; },
+    ()=>{ const f=pickNoRepeat('CYT_COMPUTACION', CYT_COMPUTACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las partes y conceptos básicos de una computadora.' }; },
+    ()=>{ const f=pickNoRepeat('CYT_ENERGIA', CYT_ENERGIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa de dónde viene cada tipo de energía.' }; },
+    ()=>{ const f=pickNoRepeat('CYT_ESPACIO', CYT_ESPACIO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el Sistema Solar y sus planetas.' }; },
+    ()=>{ const f=pickNoRepeat('CYT_SALUD_TEC', CYT_SALUD_TEC); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los grandes avances médicos de la historia.' }; },
+    ()=>{ const f=pickNoRepeat('CYT_AMBIENTE', CYT_AMBIENTE); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo cuidamos (o dañamos) el planeta.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2447,13 +2465,13 @@ const TRABAJO_VALORES=[
 ];
 function genTrabajo(level){
   const impl=[
-    ()=>{ const f=choice(TRABAJO_CONCEPTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que necesitas para buscar y conseguir un empleo.' }; },
-    ()=>{ const f=choice(TRABAJO_PLANIFICACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se organiza un negocio antes de empezarlo.' }; },
-    ()=>{ const f=choice(TRABAJO_HERRAMIENTAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa para qué sirve cada herramienta en un taller.' }; },
-    ()=>{ const f=choice(TRABAJO_SECTORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa si ese trabajo extrae, transforma o da un servicio.' }; },
-    ()=>{ const f=choice(TRABAJO_SEGURIDAD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que te protege de un accidente en el trabajo.' }; },
-    ()=>{ const f=choice(TRABAJO_DIGITAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo usamos la tecnología para trabajar hoy en día.' }; },
-    ()=>{ const f=choice(TRABAJO_VALORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las actitudes que hacen a alguien un buen trabajador.' }; }
+    ()=>{ const f=pickNoRepeat('TRABAJO_CONCEPTOS', TRABAJO_CONCEPTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que necesitas para buscar y conseguir un empleo.' }; },
+    ()=>{ const f=pickNoRepeat('TRABAJO_PLANIFICACION', TRABAJO_PLANIFICACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se organiza un negocio antes de empezarlo.' }; },
+    ()=>{ const f=pickNoRepeat('TRABAJO_HERRAMIENTAS', TRABAJO_HERRAMIENTAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa para qué sirve cada herramienta en un taller.' }; },
+    ()=>{ const f=pickNoRepeat('TRABAJO_SECTORES', TRABAJO_SECTORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa si ese trabajo extrae, transforma o da un servicio.' }; },
+    ()=>{ const f=pickNoRepeat('TRABAJO_SEGURIDAD', TRABAJO_SEGURIDAD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en lo que te protege de un accidente en el trabajo.' }; },
+    ()=>{ const f=pickNoRepeat('TRABAJO_DIGITAL', TRABAJO_DIGITAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo usamos la tecnología para trabajar hoy en día.' }; },
+    ()=>{ const f=pickNoRepeat('TRABAJO_VALORES', TRABAJO_VALORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las actitudes que hacen a alguien un buen trabajador.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2505,13 +2523,13 @@ const EF_ALIMENTACION=[
 ];
 function genEdFisica(level){
   const impl=[
-    ()=>{ const f=choice(EF_DEPORTES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las reglas básicas de los deportes más populares.' }; },
-    ()=>{ const f=choice(EF_CUERPO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo cuidas tu cuerpo antes, durante y después de hacer ejercicio.' }; },
-    ()=>{ const f=choice(EF_REGLAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las reglas que se aplican durante un partido.' }; },
-    ()=>{ const f=choice(EF_SALUD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las capacidades físicas que se entrenan con el ejercicio.' }; },
-    ()=>{ const f=choice(EF_HISTORIA_DEPORTE); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el origen y los grandes nombres de cada deporte.' }; },
-    ()=>{ const f=choice(EF_JUEGO_LIMPIO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te comportas con respeto dentro y fuera de la cancha.' }; },
-    ()=>{ const f=choice(EF_ALIMENTACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué tipo de alimento le da a tu cuerpo lo que necesita.' }; }
+    ()=>{ const f=pickNoRepeat('EF_DEPORTES', EF_DEPORTES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las reglas básicas de los deportes más populares.' }; },
+    ()=>{ const f=pickNoRepeat('EF_CUERPO', EF_CUERPO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo cuidas tu cuerpo antes, durante y después de hacer ejercicio.' }; },
+    ()=>{ const f=pickNoRepeat('EF_REGLAS', EF_REGLAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las reglas que se aplican durante un partido.' }; },
+    ()=>{ const f=pickNoRepeat('EF_SALUD', EF_SALUD); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las capacidades físicas que se entrenan con el ejercicio.' }; },
+    ()=>{ const f=pickNoRepeat('EF_HISTORIA_DEPORTE', EF_HISTORIA_DEPORTE); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el origen y los grandes nombres de cada deporte.' }; },
+    ()=>{ const f=pickNoRepeat('EF_JUEGO_LIMPIO', EF_JUEGO_LIMPIO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te comportas con respeto dentro y fuera de la cancha.' }; },
+    ()=>{ const f=pickNoRepeat('EF_ALIMENTACION', EF_ALIMENTACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué tipo de alimento le da a tu cuerpo lo que necesita.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2559,13 +2577,13 @@ const TUT_DIGITAL=[
 ];
 function genTutoria(level){
   const impl=[
-    ()=>{ const f=choice(TUT_ESTUDIO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las técnicas que ayudan a estudiar mejor, no más horas.' }; },
-    ()=>{ const f=choice(TUT_EMOCIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo manejas tus emociones ante situaciones difíciles.' }; },
-    ()=>{ const f=choice(TUT_CONVIVENCIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te llevas bien con tus compañeros de clase.' }; },
-    ()=>{ const f=choice(TUT_ORIENTACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo decidir qué estudiar o a qué dedicarte en el futuro.' }; },
-    ()=>{ const f=choice(TUT_HABITOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las rutinas diarias que te ayudan a rendir mejor.' }; },
-    ()=>{ const f=choice(TUT_METAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo planificas lo que quieres lograr.' }; },
-    ()=>{ const f=choice(TUT_DIGITAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te cuidas tú mismo cuando usas internet y pantallas.' }; }
+    ()=>{ const f=pickNoRepeat('TUT_ESTUDIO', TUT_ESTUDIO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las técnicas que ayudan a estudiar mejor, no más horas.' }; },
+    ()=>{ const f=pickNoRepeat('TUT_EMOCIONES', TUT_EMOCIONES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo manejas tus emociones ante situaciones difíciles.' }; },
+    ()=>{ const f=pickNoRepeat('TUT_CONVIVENCIA', TUT_CONVIVENCIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te llevas bien con tus compañeros de clase.' }; },
+    ()=>{ const f=pickNoRepeat('TUT_ORIENTACION', TUT_ORIENTACION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo decidir qué estudiar o a qué dedicarte en el futuro.' }; },
+    ()=>{ const f=pickNoRepeat('TUT_HABITOS', TUT_HABITOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las rutinas diarias que te ayudan a rendir mejor.' }; },
+    ()=>{ const f=pickNoRepeat('TUT_METAS', TUT_METAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo planificas lo que quieres lograr.' }; },
+    ()=>{ const f=pickNoRepeat('TUT_DIGITAL', TUT_DIGITAL); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo te cuidas tú mismo cuando usas internet y pantallas.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2620,13 +2638,13 @@ const LENG_ORACIONES_TIPO=[
 ];
 function genLenguaje(level){
   const impl=[
-    ()=>{ const f=choice(LENG_GRAMATICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en quién hace la acción y qué se dice sobre esa acción.' }; },
-    ()=>{ const f=choice(LENG_CONECTORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa qué función cumple esa palabra para unir dos ideas.' }; },
-    ()=>{ const f=choice(LENG_REGISTRO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el contexto: ¿le hablarías así a un profesor o a un amigo?' }; },
-    ()=>{ const f=choice(LENG_REDACCION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se organiza un buen párrafo al escribir.' }; },
-    ()=>{ const f=choice(LENG_TIPOS_PALABRAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué función cumple ese tipo de palabra dentro de una oración.' }; },
-    ()=>{ const f=choice(LENG_COMPRENSION); return { text:`${f.passage}\n\n${f.q}`, options:mkOptions(f.correct,f.wrongs), explain:`El texto dice: "${f.passage}" — ahí está la respuesta.`, hint:'Busca la parte del texto que responde directamente la pregunta.' }; },
-    ()=>{ const f=choice(LENG_ORACIONES_TIPO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la intención de esa oración: ¿afirma, pregunta, ordena o exclama?' }; }
+    ()=>{ const f=pickNoRepeat('LENG_GRAMATICA', LENG_GRAMATICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en quién hace la acción y qué se dice sobre esa acción.' }; },
+    ()=>{ const f=pickNoRepeat('LENG_CONECTORES', LENG_CONECTORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa qué función cumple esa palabra para unir dos ideas.' }; },
+    ()=>{ const f=pickNoRepeat('LENG_REGISTRO', LENG_REGISTRO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el contexto: ¿le hablarías así a un profesor o a un amigo?' }; },
+    ()=>{ const f=pickNoRepeat('LENG_REDACCION', LENG_REDACCION); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en cómo se organiza un buen párrafo al escribir.' }; },
+    ()=>{ const f=pickNoRepeat('LENG_TIPOS_PALABRAS', LENG_TIPOS_PALABRAS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en qué función cumple ese tipo de palabra dentro de una oración.' }; },
+    ()=>{ const f=pickNoRepeat('LENG_COMPRENSION', LENG_COMPRENSION); return { text:`${f.passage}\n\n${f.q}`, options:mkOptions(f.correct,f.wrongs), explain:`El texto dice: "${f.passage}" — ahí está la respuesta.`, hint:'Busca la parte del texto que responde directamente la pregunta.' }; },
+    ()=>{ const f=pickNoRepeat('LENG_ORACIONES_TIPO', LENG_ORACIONES_TIPO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la intención de esa oración: ¿afirma, pregunta, ordena o exclama?' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2681,13 +2699,13 @@ const REL_ETICA=[
 ];
 function genReligion(level){
   const impl=[
-    ()=>{ const f=choice(REL_BIBLIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las historias del Antiguo Testamento que has escuchado.' }; },
-    ()=>{ const f=choice(REL_JESUS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la vida de Jesús según los Evangelios.' }; },
-    ()=>{ const f=choice(REL_VALORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los valores que se enseñan en casi todas las religiones.' }; },
-    ()=>{ const f=choice(REL_MUNDO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las distintas religiones que existen en el mundo.' }; },
-    ()=>{ const f=choice(REL_PERU); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las tradiciones religiosas más conocidas del Perú.' }; },
-    ()=>{ const f=choice(REL_CONCEPTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el vocabulario básico que se usa al hablar de religión.' }; },
-    ()=>{ const f=choice(REL_ETICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en por qué actuamos bien incluso cuando nadie nos ve.' }; }
+    ()=>{ const f=pickNoRepeat('REL_BIBLIA', REL_BIBLIA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las historias del Antiguo Testamento que has escuchado.' }; },
+    ()=>{ const f=pickNoRepeat('REL_JESUS', REL_JESUS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en la vida de Jesús según los Evangelios.' }; },
+    ()=>{ const f=pickNoRepeat('REL_VALORES', REL_VALORES); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en los valores que se enseñan en casi todas las religiones.' }; },
+    ()=>{ const f=pickNoRepeat('REL_MUNDO', REL_MUNDO); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las distintas religiones que existen en el mundo.' }; },
+    ()=>{ const f=pickNoRepeat('REL_PERU', REL_PERU); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en las tradiciones religiosas más conocidas del Perú.' }; },
+    ()=>{ const f=pickNoRepeat('REL_CONCEPTOS', REL_CONCEPTOS); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en el vocabulario básico que se usa al hablar de religión.' }; },
+    ()=>{ const f=pickNoRepeat('REL_ETICA', REL_ETICA); return { text:f.q, options:mkOptions(f.correct,f.wrongs), explain:`La respuesta correcta es "${f.correct}".`, hint:'Piensa en por qué actuamos bien incluso cuando nadie nos ve.' }; }
   ];
   const {stage}=stageInfo(level,8);
   if(stage<7) return impl[stage]();
@@ -2772,7 +2790,7 @@ function renderHome(){
       ${mascotHtml('sm')}
       <div class="hello">
         <div class="greet">Hola, mi bb</div>
-        <div class="sub">${choice(MOTIVATE)}</div>
+        <div class="sub">${pickNoRepeat('MOTIVATE', MOTIVATE)}</div>
         <div class="quickrow">
           <button class="qbtn" data-action="open-letter">${icon('icon-letter')} Carta para ti</button>
           <button class="qbtn" data-action="open-achievements">${icon('icon-trophy')} Logros</button>
@@ -2916,7 +2934,7 @@ function renderQuiz(){
     const wasCorrect = q.options[VIEW.chosen] && q.options[VIEW.chosen].correct;
     feedbackHtml = `
       <div class="feedback ${wasCorrect?'ok':'meh'}">
-        <b>${wasCorrect ? choice(MSG_CORRECT) : choice(MSG_WRONG)}</b>
+        <b>${wasCorrect ? pickNoRepeat('MSG_CORRECT', MSG_CORRECT) : pickNoRepeat('MSG_WRONG', MSG_WRONG)}</b>
         ${esc(q.explain)}
       </div>
       <button class="nextbtn" data-action="next-question">Siguiente pregunta →</button>
@@ -3023,7 +3041,7 @@ function renderSimulacroQuiz(){
     const isLast = sim.idx===sim.items.length-1;
     feedbackHtml = `
       <div class="feedback ${wasCorrect?'ok':'meh'}">
-        <b>${wasCorrect ? choice(MSG_CORRECT) : choice(MSG_WRONG)}</b>
+        <b>${wasCorrect ? pickNoRepeat('MSG_CORRECT', MSG_CORRECT) : pickNoRepeat('MSG_WRONG', MSG_WRONG)}</b>
         ${esc(q.explain)}
       </div>
       <button class="nextbtn" data-action="sim-next">${isLast ? 'Ver resultado final →' : 'Siguiente pregunta →'}</button>
@@ -3283,7 +3301,7 @@ document.addEventListener('click', function(e){
   else if(action==='close-letter'){ closeLetter(); }
   else if(action==='soon-subject'){
     const name=el.getAttribute('data-name');
-    showToast(choice(SOON_MSGS)(name));
+    showToast(pickNoRepeat('SOON_MSGS', SOON_MSGS)(name));
   }
   else if(action==='ask-reset'){ renderAskReset(); }
   else if(action==='cancel-reset'){ closeAnyModal(); }
