@@ -183,6 +183,7 @@ footer .msg .hw{font-family:'Caveat',cursive;font-size:17px;font-weight:700;}
 .sim-banner .sim-title{font-family:'Baloo 2';font-weight:800;font-size:16px;color:#fff;}
 .sim-banner .sim-sub{font-size:11.5px;color:rgba(255,255,255,0.85);margin-top:2px;}
 .sim-banner svg{width:18px;height:18px;color:#fff;flex-shrink:0;}
+.review-banner{background:linear-gradient(135deg,#3B3D3A,#20241F);}
 .sim-intro{text-align:center;padding:30px 16px;}
 .sim-intro .big-ic{width:80px;height:80px;color:var(--pink-dark);margin:0 auto 14px;}
 .sim-intro h2{font-family:'Baloo 2';font-size:22px;margin-bottom:8px;}
@@ -827,7 +828,7 @@ function defaultState(){
     xp:0, totalCorrect:0, totalAnswered:0,
     dailyStreak:0, lastActiveDate:null,
     seenIntro:false, seenTip:false,
-    topics
+    topics, failed:[]
   };
 }
 function loadState(){
@@ -850,6 +851,13 @@ function loadState(){
 function saveState(){
   try{ localStorage.setItem(KEY, JSON.stringify(STATE)); }catch(e){}
 }
+function recordFailure(subjId, q){
+  if(!STATE.failed) STATE.failed=[];
+  const dup = STATE.failed.some(f=>f.subjId===subjId && f.text===q.text);
+  if(dup) return;
+  STATE.failed.push({ subjId, text:q.text, svg:q.svg||null, options:q.options, explain:q.explain, hint:q.hint });
+  if(STATE.failed.length>150) STATE.failed.shift();
+}
 function bumpDailyStreak(){
   try{
     const today=new Date().toDateString();
@@ -863,7 +871,7 @@ function bumpDailyStreak(){
 }
 
 /* ---------- view state (not persisted) ---------- */
-let VIEW={ screen:'home', topicId:null, question:null, chosen:null, answered:false, showHint:false, sim:null };
+let VIEW={ screen:'home', topicId:null, question:null, chosen:null, answered:false, showHint:false, sim:null, reviewIdx:0, reviewWasCorrect:false };
 
 /* ================= GENERATORS (100 levels per topic, grouped in difficulty stages) ================= */
 /* each returns {text, options:[{text,correct}], explain, hint} */
@@ -2755,6 +2763,17 @@ function renderHome(){
       <button data-action="dismiss-tip">${icon('icon-close')}</button>
     </div>`;
 
+  const failedCount = (STATE.failed||[]).length;
+  const reviewBannerHtml = failedCount===0 ? '' : `
+    <div class="sim-banner review-banner" data-action="open-review">
+      <div class="sim-ic">${icon('icon-bulb')}</div>
+      <div class="sim-txt">
+        <div class="sim-title">Repaso de fallos</div>
+        <div class="sim-sub">${failedCount} pregunta${failedCount===1?'':'s'} que fallaste antes, para practicar de nuevo</div>
+      </div>
+      <span style="display:inline-flex;transform:rotate(180deg)">${icon('icon-arrow-left')}</span>
+    </div>`;
+
   const topicCard = (t)=>{
     const st=STATE.topics[t.id];
     const pct = Math.round((st.streak/3)*100);
@@ -2811,6 +2830,7 @@ function renderHome(){
       </div>
       <span style="display:inline-flex;transform:rotate(180deg)">${icon('icon-arrow-left')}</span>
     </div>
+    ${reviewBannerHtml}
     <section>
       <div class="sect-head">
         <div>
@@ -3000,7 +3020,64 @@ function render(){
   else if(VIEW.screen==='simulacro-intro') renderSimulacroIntro();
   else if(VIEW.screen==='simulacro-quiz') renderSimulacroQuiz();
   else if(VIEW.screen==='simulacro-result') renderSimulacroResult();
+  else if(VIEW.screen==='review') renderReview();
+  else if(VIEW.screen==='review-done') renderReviewDone();
   else renderQuiz();
+}
+
+function renderReview(){
+  const item=VIEW.reviewCurrent;
+  const t=topicMeta(item.subjId);
+
+  const optsHtml = item.options.map((o,i)=>{
+    let cls='opt';
+    if(VIEW.answered){
+      if(o.correct) cls+=' correct';
+      else if(i===VIEW.chosen) cls+=' wrong';
+    }
+    return `<button class="${cls}" data-action="review-answer" data-idx="${i}" ${VIEW.answered?'disabled':''}>${esc(o.text)}</button>`;
+  }).join('');
+
+  let feedbackHtml='';
+  if(VIEW.answered){
+    feedbackHtml = `
+      <div class="feedback ${VIEW.reviewWasCorrect?'ok':'meh'}">
+        <b>${VIEW.reviewWasCorrect ? '¡esta vez sí! ya la dominas' : 'de nuevo no, sigue practicando esta'}</b>
+        ${esc(item.explain)}
+      </div>
+      <button class="nextbtn" data-action="review-next">Siguiente →</button>
+    `;
+  }
+
+  app.innerHTML = `
+    <div class="quiz-top">
+      <button class="backbtn" data-action="go-home">${icon('icon-arrow-left')}</button>
+      <div class="quiz-title">${icon('icon-bulb')} Repaso de fallos</div>
+      <div class="lvl-badge">${STATE.failed.length} por repasar</div>
+    </div>
+    <div class="qcard">
+      <div class="sim-tag">${icon(t.icon)} ${t.name}</div>
+      ${item.svg ? `<div class="qfig">${item.svg}</div>` : ''}
+      <div class="qtext">${esc(item.text)}</div>
+    </div>
+    <div class="opts">${optsHtml}</div>
+    ${feedbackHtml}
+  `;
+}
+
+function renderReviewDone(){
+  app.innerHTML = `
+    <div class="quiz-top">
+      <button class="backbtn" data-action="go-home">${icon('icon-arrow-left')}</button>
+      <div class="quiz-title">${icon('icon-bulb')} Repaso de fallos</div>
+    </div>
+    <div class="sim-result">
+      <div class="big-ic">${icon('icon-trophy')}</div>
+      <h2 style="font-family:'Baloo 2';margin-bottom:10px;">¡repasaste todo mi bb!</h2>
+      <p style="color:var(--ink-soft);margin-bottom:22px;">ya no te queda ninguna pregunta fallada pendiente</p>
+      <button class="sim-start-btn" data-action="go-home">Volver al inicio</button>
+    </div>
+  `;
 }
 
 function renderSimulacroIntro(){
@@ -3265,6 +3342,7 @@ function simulacroAnswer(idx){
   if(!sim.byTopic[tName]) sim.byTopic[tName]={correct:0,total:0};
   sim.byTopic[tName].total++;
   if(wasCorrect){ sim.score++; sim.byTopic[tName].correct++; }
+  else { recordFailure(cur.subjId, cur.question); saveState(); }
   render();
 }
 
@@ -3281,6 +3359,40 @@ function simulacroNext(){
 
 function simulacroExit(){
   VIEW.sim=null; VIEW.screen='home'; render();
+}
+
+/* ---------- repaso de preguntas falladas ---------- */
+function openReview(){
+  if(!STATE.failed || STATE.failed.length===0) return;
+  VIEW.screen='review'; VIEW.reviewIdx=0; VIEW.answered=false; VIEW.chosen=null;
+  VIEW.reviewCurrent=STATE.failed[0];
+  render();
+}
+
+function reviewAnswer(idx){
+  if(VIEW.answered) return;
+  const item=VIEW.reviewCurrent;
+  const wasCorrect=item.options[idx].correct;
+  feedbackFX(wasCorrect);
+  VIEW.answered=true; VIEW.chosen=idx; VIEW.reviewWasCorrect=wasCorrect;
+  if(wasCorrect){
+    const pos=STATE.failed.indexOf(item);
+    if(pos!==-1) STATE.failed.splice(pos,1);
+    saveState();
+  }
+  render();
+}
+
+function reviewNext(){
+  VIEW.answered=false; VIEW.chosen=null;
+  if(!STATE.failed || STATE.failed.length===0){ VIEW.screen='review-done'; render(); return; }
+  if(VIEW.reviewWasCorrect){
+    if(VIEW.reviewIdx>=STATE.failed.length) VIEW.reviewIdx=0;
+  } else {
+    VIEW.reviewIdx=(VIEW.reviewIdx+1)%STATE.failed.length;
+  }
+  VIEW.reviewCurrent=STATE.failed[VIEW.reviewIdx];
+  render();
 }
 
 function answer(idx){
@@ -3305,6 +3417,7 @@ function answer(idx){
     STATE.xp += 2;
     st.wrongStreak++; st.streak=0;
     if(st.wrongStreak>=2 && st.level>1){ st.level--; st.wrongStreak=0; leveledDown=true; }
+    recordFailure(VIEW.topicId, VIEW.question);
   }
   saveState();
   render();
@@ -3348,6 +3461,9 @@ document.addEventListener('click', function(e){
   else if(action==='start-simulacro'){ startSimulacro(); }
   else if(action==='sim-answer'){ simulacroAnswer(parseInt(el.getAttribute('data-idx'),10)); }
   else if(action==='sim-next'){ simulacroNext(); }
+  else if(action==='open-review'){ openReview(); }
+  else if(action==='review-answer'){ reviewAnswer(parseInt(el.getAttribute('data-idx'),10)); }
+  else if(action==='review-next'){ reviewNext(); }
 });
 
 /* ---------- boot ---------- */
