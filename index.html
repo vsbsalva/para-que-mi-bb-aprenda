@@ -238,29 +238,40 @@ footer .msg .hw{font-family:'Caveat',cursive;font-size:17px;font-weight:700;}
 
 @media (max-width:480px){
   body{
-    padding-left:max(12px, env(safe-area-inset-left));
-    padding-right:max(12px, env(safe-area-inset-right));
+    padding-left:max(10px, env(safe-area-inset-left));
+    padding-right:max(10px, env(safe-area-inset-right));
   }
   #app{
     width:100%;
     max-width:none;
     padding-bottom:calc(40px + env(safe-area-inset-bottom));
   }
+  section{margin-bottom:14px;}
+  .sect-head{margin-bottom:6px;}
+  .sect-head h2{font-size:15px;}
+  .sect-head p{font-size:10.5px;}
   .grid-math{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:10px;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
   }
   .topic-card{
     min-width:0;
-    padding:13px 12px;
+    padding:8px 7px;
+    border-radius:14px;
+    gap:4px;
   }
-  .topic-card .nm{font-size:14px;}
+  .topic-card .ic{font-size:18px;}
+  .topic-card .nm{font-size:10.5px;line-height:1.1;}
+  .topic-card .lvl{font-size:9px;}
+  .bar{height:4px;}
+  .playbtn{padding:4px 10px;font-size:10px;margin-top:0;}
+  .tip{padding:7px 9px;font-size:11px;margin-bottom:8px;}
 }
 
-@media (max-width:380px){
-  .grid-math{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .topic-card{padding:12px 10px;}
-  .topic-card .nm{font-size:13px;}
+@media (max-width:360px){
+  .grid-math{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+  .topic-card{padding:7px 6px;}
+  .topic-card .nm{font-size:10px;}
 }
 </style>
 </head>
