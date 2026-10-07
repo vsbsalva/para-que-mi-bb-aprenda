@@ -37,12 +37,13 @@ html,body{
 body{
   background-color:#090D16;
   background-image:
-    linear-gradient(rgba(9,13,22,0.35),rgba(9,13,22,0.35)),
-    url("assets/fondo-ka.svg");
-  background-repeat:no-repeat;
-  background-position:center center;
-  background-size:cover;
-  background-attachment:fixed;
+    linear-gradient(rgba(9,13,22,0.25),rgba(9,13,22,0.25)),
+    url("assets/fondo-ka.svg"),
+    url("assets/fondo-tile.svg");
+  background-repeat:no-repeat, no-repeat, repeat;
+  background-position:center center, bottom -10px right -10px, top left;
+  background-size:cover, min(70vw,420px) auto, 170px auto;
+  background-attachment:fixed, fixed, fixed;
   color:var(--ink);
   font-family:'Nunito',sans-serif;
   padding-inline:16px;
@@ -55,7 +56,13 @@ body{
   position:fixed;right:-60px;bottom:-40px;width:340px;height:340px;
   color:var(--pink);opacity:0.13;z-index:0;pointer-events:none;
   filter:drop-shadow(0 0 14px var(--pink)) drop-shadow(0 0 36px var(--pink));
+  animation:cat-float 5s ease-in-out infinite;
 }
+@keyframes cat-float{
+  0%,100%{ transform:translateY(0) rotate(0deg); }
+  50%{ transform:translateY(-14px) rotate(-3deg); }
+}
+@media (prefers-reduced-motion: reduce){ .hero-cat{animation:none;} }
 @media (max-width:480px){ .hero-cat{width:220px;height:220px;right:-40px;bottom:-20px;} }
 /* Navy/cream/red palette (single theme), original cat+bow line art — not the licensed character, not fondo.png (still can't use that one, same reason as before — see chat). */
 h1,h2,h3,.disp{font-family:'Baloo 2',sans-serif;}
@@ -246,32 +253,32 @@ footer .msg .hw{font-family:'Caveat',cursive;font-size:17px;font-weight:700;}
     max-width:none;
     padding-bottom:calc(40px + env(safe-area-inset-bottom));
   }
-  section{margin-bottom:14px;}
-  .sect-head{margin-bottom:6px;}
-  .sect-head h2{font-size:15px;}
-  .sect-head p{font-size:10.5px;}
+  section{margin-bottom:9px;}
+  .sect-head{margin-bottom:3px;}
+  .sect-head h2{font-size:13px;}
+  .sect-head p{display:none;}
   .grid-math{
-    grid-template-columns:repeat(3,minmax(0,1fr));
-    gap:6px;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:5px;
   }
   .topic-card{
     min-width:0;
-    padding:8px 7px;
-    border-radius:14px;
-    gap:4px;
+    padding:6px 5px;
+    border-radius:10px;
+    gap:2px;
   }
-  .topic-card .ic{font-size:18px;}
-  .topic-card .nm{font-size:10.5px;line-height:1.1;}
-  .topic-card .lvl{font-size:9px;}
-  .bar{height:4px;}
-  .playbtn{padding:4px 10px;font-size:10px;margin-top:0;}
-  .tip{padding:7px 9px;font-size:11px;margin-bottom:8px;}
+  .topic-card .ic{font-size:14px;}
+  .topic-card .nm{font-size:9px;line-height:1.05;}
+  .topic-card .lvl{font-size:7.5px;}
+  .bar{height:3px;}
+  .playbtn{padding:2px 8px;font-size:8.5px;margin-top:1px;border-radius:999px;}
+  .tip{padding:6px 8px;font-size:10px;margin-bottom:6px;}
 }
 
 @media (max-width:360px){
   .grid-math{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
-  .topic-card{padding:7px 6px;}
-  .topic-card .nm{font-size:10px;}
+  .topic-card{padding:6px 5px;}
+  .topic-card .nm{font-size:9px;}
 }
 </style>
 </head>
@@ -2473,7 +2480,6 @@ function topicMeta(id){ return ALL_TOPICS.find(t=>t.id===id); }
 function mascotHtml(sizeClass){ return `<div class="mascot ${sizeClass||''}">${icon('icon-cat')}</div>`; }
 
 function renderHome(){
-  const rank=rankFor(STATE.xp);
   const tipHtml = STATE.seenTip ? '' : `
     <div class="tip">
       ${icon('icon-phone')}
@@ -2516,7 +2522,6 @@ function renderHome(){
       ${mascotHtml('sm')}
       <div class="hello">
         <div class="greet">Hola, mi bb</div>
-        <div class="sub">${rank} · ${choice(MOTIVATE)}</div>
         <div class="quickrow">
           <button class="qbtn" data-action="open-letter">${icon('icon-letter')} Carta para ti</button>
           <button class="qbtn" data-action="open-achievements">${icon('icon-trophy')} Logros</button>
