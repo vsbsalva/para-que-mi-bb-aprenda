@@ -2709,14 +2709,18 @@ const GENERATORS={
 
 /* ---------- simulacro de examen ---------- */
 const SIM_QUESTION_COUNT=100;
-/* pesos: Comunicación y Matemática pesan más, como en un examen real */
-const SIM_WEIGHTED_SUBJECTS=[
-  ...Array(5).fill('comunicacion'), ...Array(3).fill('razverbal'), ...Array(2).fill('lenguaje'),
-  ...Array(4).fill('aritmetica'), ...Array(3).fill('algebra'), ...Array(3).fill('geometria'),
-  ...Array(2).fill('trigonometria'), ...Array(4).fill('razonamiento'),
-  ...Array(2).fill('historia'), ...Array(2).fill('geografia'), 'civica',
-  ...Array(2).fill('fisica'), ...Array(2).fill('quimica'), ...Array(2).fill('biologia'), 'ciencia_tec'
+/* Para 4to de secundaria, el "simulacro" en Perú suele calcar el formato de los exámenes
+   de admisión (San Marcos, UNI, etc.): mitad Aptitud (Verbal + Matemática) y mitad Cultura General
+   (Historia, Geografía, Economía, Cívica, Literatura, Ciencias, Inglés). La ECE de 2do de secundaria
+   (Comunicación/Matemática/HGE/CTA) es un formato distinto, para otro grado. */
+const SIM_AREA_VERBAL=[...Array(4).fill('comunicacion'), ...Array(4).fill('razverbal'), ...Array(2).fill('lenguaje')];
+const SIM_AREA_MATEMATICA=[...Array(3).fill('aritmetica'), ...Array(3).fill('algebra'), ...Array(2).fill('geometria'), 'trigonometria', ...Array(3).fill('razonamiento')];
+const SIM_AREA_CULTURA_GENERAL=[
+  ...Array(2).fill('historia'), ...Array(2).fill('geografia'), 'economia', 'civica',
+  ...Array(2).fill('literatura'), 'arte', ...Array(2).fill('fisica'), ...Array(2).fill('quimica'),
+  ...Array(2).fill('biologia'), 'ciencia_tec', ...Array(2).fill('ingles'), 'dpcc', 'ciencias_sociales'
 ];
+const SIM_WEIGHTED_SUBJECTS=[...SIM_AREA_VERBAL, ...SIM_AREA_MATEMATICA, ...SIM_AREA_CULTURA_GENERAL];
 
 /* ================= RENDER ================= */
 const app=document.getElementById('app');
