@@ -3015,15 +3015,25 @@ function celebrate(big){
 /* ---------- actions ---------- */
 function goHome(){ VIEW={screen:'home',topicId:null,question:null,chosen:null,answered:false,showHint:false}; render(); }
 
+const RECENT_Q={};
+function genUniqueQuestion(id, level){
+  const hist = RECENT_Q[id] || (RECENT_Q[id]=[]);
+  let q, tries=0;
+  do { q = GENERATORS[id](level); tries++; } while(hist.includes(q.text) && tries<12);
+  hist.push(q.text);
+  if(hist.length>6) hist.shift();
+  return q;
+}
+
 function openTopic(id){
   VIEW.screen='quiz'; VIEW.topicId=id; VIEW.answered=false; VIEW.chosen=null; VIEW.showHint=false;
-  VIEW.question = GENERATORS[id](STATE.topics[id].level);
+  VIEW.question = genUniqueQuestion(id, STATE.topics[id].level);
   render();
 }
 
 function nextQuestion(){
   VIEW.answered=false; VIEW.chosen=null; VIEW.showHint=false;
-  VIEW.question = GENERATORS[VIEW.topicId](STATE.topics[VIEW.topicId].level);
+  VIEW.question = genUniqueQuestion(VIEW.topicId, STATE.topics[VIEW.topicId].level);
   render();
 }
 
