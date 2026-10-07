@@ -43,7 +43,7 @@ body{
   background-repeat:no-repeat, no-repeat, repeat;
   background-position:center center, bottom -10px right -10px, top left;
   background-size:cover, min(70vw,420px) auto, 170px auto;
-  background-attachment:fixed, fixed, fixed;
+  background-attachment:scroll, scroll, scroll;
   color:var(--ink);
   font-family:'Nunito',sans-serif;
   padding-inline:16px;
@@ -53,7 +53,7 @@ body{
 }
 
 .hero-cat{
-  position:fixed;right:-60px;bottom:-40px;width:340px;height:340px;
+  position:absolute;right:-60px;bottom:-40px;width:340px;height:340px;
   color:var(--pink);opacity:0.13;z-index:0;pointer-events:none;
   filter:drop-shadow(0 0 14px var(--pink)) drop-shadow(0 0 36px var(--pink));
   animation:cat-float 5s ease-in-out infinite;
@@ -2483,7 +2483,7 @@ function renderHome(){
   const tipHtml = STATE.seenTip ? '' : `
     <div class="tip">
       ${icon('icon-phone')}
-      <span>Tip: toca <b>Compartir</b> → "Agregar a pantalla de inicio" para abrir esto como una app.</span>
+      <span>Tip: para guardar foto de todos los cursos, abrí este link en <b>Safari</b>, tomá captura y elegí <b>"Página completa"</b> arriba.</span>
       <button data-action="dismiss-tip">${icon('icon-close')}</button>
     </div>`;
 
