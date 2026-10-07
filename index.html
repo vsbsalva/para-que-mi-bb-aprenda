@@ -173,6 +173,7 @@ footer .msg .hw{font-family:'Caveat',cursive;font-size:17px;font-weight:700;}
 
 .qcard{background:var(--card);border-radius:22px;padding:22px 18px;box-shadow:0 8px 20px var(--shadow);margin-bottom:10px;}
 .qtext{font-size:19px;font-weight:700;line-height:1.4;text-wrap:balance;font-family:'Baloo 2';white-space:pre-line;}
+.qfig{background:rgba(244,242,201,0.04);border-radius:14px;padding:8px 4px;}
 
 .hintrow{display:flex;justify-content:flex-end;margin:0 2px 10px;}
 .hintbtn{display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--pink-dark);font-weight:800;font-size:12.5px;cursor:pointer;text-decoration:underline;padding:4px;}
@@ -536,6 +537,106 @@ function uniqueWrongsNum(correct, genFn, count){
   }
   return [...set];
 }
+function uniqueWrongsAny(correct, genFn, count){
+  count = count||3;
+  const set=new Set();
+  let tries=0;
+  while(set.size<count && tries<60){
+    tries++;
+    const v=genFn();
+    if(v!==correct && !set.has(v)) set.add(v);
+  }
+  let fb=correct+1;
+  while(set.size<count){
+    if(fb!==correct && !set.has(fb)) set.add(fb);
+    fb++;
+  }
+  return [...set];
+}
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ const tmp=b; b=a%b; a=tmp; } return a||1; }
+
+/* ---------- geometry figure diagrams (inline SVG, shown above the question) ---------- */
+function svgWrap(inner, vw, vh){
+  return `<svg viewBox="0 0 ${vw} ${vh}" style="width:100%;max-width:220px;height:auto;display:block;margin:0 auto 10px;">${inner}</svg>`;
+}
+function figRect(w,h){
+  const vw=200, vh=150, pad=34;
+  const scale=Math.min((vw-2*pad)/w,(vh-2*pad)/h);
+  const rw=w*scale, rh=h*scale, x=(vw-rw)/2, y=(vh-rh)/2;
+  return svgWrap(`<rect x="${x}" y="${y}" width="${rw}" height="${rh}" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>
+    <text x="${x+rw/2}" y="${y+rh+18}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(w)}</text>
+    <text x="${x-10}" y="${y+rh/2}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700" transform="rotate(-90 ${x-10} ${y+rh/2})">${fmt(h)}</text>`, vw, vh);
+}
+function figRightTriangle(leg1,leg2,hyp){
+  const vw=200, vh=150, pad=30;
+  const scale=Math.min((vw-2*pad)/leg1,(vh-2*pad)/leg2);
+  const bw=leg1*scale, bh=leg2*scale;
+  const x0=pad, y0=vh-pad, x1=x0+bw, y1=y0, x2=x0, y2=y0-bh;
+  return svgWrap(`<polygon points="${x0},${y0} ${x1},${y1} ${x2},${y2}" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>
+    <rect x="${x0}" y="${y0-9}" width="9" height="9" fill="none" stroke="#F4F2C9" stroke-width="2"/>
+    <text x="${(x0+x1)/2}" y="${y0+18}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(leg1)}</text>
+    <text x="${x0-16}" y="${(y0+y2)/2}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(leg2)}</text>
+    <text x="${(x1+x2)/2+14}" y="${(y1+y2)/2-6}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(hyp)}</text>`, vw, vh);
+}
+function figTriangleGeneric(a,b,c){
+  const vw=200, vh=150, x0=40,y0=120,x1=160,y1=120,x2=92,y2=30;
+  return svgWrap(`<polygon points="${x0},${y0} ${x1},${y1} ${x2},${y2}" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>
+    <text x="100" y="${y0+18}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(a)}</text>
+    <text x="${(x1+x2)/2+16}" y="${(y1+y2)/2}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(b)}</text>
+    <text x="${(x0+x2)/2-16}" y="${(y0+y2)/2}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(c)}</text>`, vw, vh);
+}
+function figCircle(r){
+  const vw=200, vh=150, cx=100, cy=75, R=50;
+  return svgWrap(`<circle cx="${cx}" cy="${cy}" r="${R}" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>
+    <line x1="${cx}" y1="${cy}" x2="${cx+R}" y2="${cy}" stroke="#FF163D" stroke-width="2"/>
+    <circle cx="${cx}" cy="${cy}" r="2.5" fill="#F4F2C9"/>
+    <text x="${cx+R/2}" y="${cy-8}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(r)}</text>`, vw, vh);
+}
+function figTrapezoid(b1,b2,h){
+  const vw=200, vh=150, topW=80, botW=140, x0=100-botW/2, x1=100+botW/2, y0=120, x2=100-topW/2, x3=100+topW/2, y1=40;
+  return svgWrap(`<polygon points="${x0},${y0} ${x1},${y0} ${x3},${y1} ${x2},${y1}" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>
+    <text x="100" y="${y0+18}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(b1)}</text>
+    <text x="100" y="${y1-8}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(b2)}</text>
+    <text x="${x0-14}" y="${(y0+y1)/2}" text-anchor="middle" fill="#FF163D" font-size="13" font-weight="700">${fmt(h)}</text>`, vw, vh);
+}
+function figCompound(b,h,h2){
+  const vw=200, vh=150, pad=34;
+  const scale=Math.min((vw-2*pad)/b,(vh-2*pad-30)/(h+h2));
+  const rw=b*scale, rh=h*scale, th=h2*scale, x=(vw-rw)/2, yTop=20, yMid=yTop+th, yBot=yMid+rh;
+  return svgWrap(`<rect x="${x}" y="${yMid}" width="${rw}" height="${rh}" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>
+    <polygon points="${x},${yMid} ${x+rw},${yMid} ${x+rw/2},${yTop}" fill="rgba(229,9,47,0.12)" stroke="#F4F2C9" stroke-width="3"/>
+    <text x="${x+rw/2}" y="${yBot+18}" text-anchor="middle" fill="#FF163D" font-size="12" font-weight="700">${fmt(b)}</text>
+    <text x="${x-10}" y="${(yMid+yBot)/2}" text-anchor="middle" fill="#FF163D" font-size="12" font-weight="700" transform="rotate(-90 ${x-10} ${(yMid+yBot)/2})">${fmt(h)}</text>
+    <text x="${x+rw+12}" y="${(yTop+yMid)/2}" text-anchor="middle" fill="#FF163D" font-size="12" font-weight="700">${fmt(h2)}</text>`, vw, vh);
+}
+function figBox(isCube){
+  const vw=200, vh=150, ox=55, oy=115, fw=95, fh=65, dx=28, dy=-22;
+  return svgWrap(`<polygon points="${ox},${oy} ${ox+fw},${oy} ${ox+fw},${oy-fh} ${ox},${oy-fh}" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>
+    <polygon points="${ox},${oy-fh} ${ox+dx},${oy-fh+dy} ${ox+fw+dx},${oy-fh+dy} ${ox+fw},${oy-fh}" fill="rgba(244,242,201,0.16)" stroke="#F4F2C9" stroke-width="3"/>
+    <polygon points="${ox+fw},${oy} ${ox+fw},${oy-fh} ${ox+fw+dx},${oy-fh+dy} ${ox+fw+dx},${oy+dy}" fill="rgba(244,242,201,0.22)" stroke="#F4F2C9" stroke-width="3"/>`, vw, vh);
+}
+function figCone(){
+  const vw=200, vh=150;
+  return svgWrap(`<ellipse cx="100" cy="120" rx="55" ry="16" fill="rgba(244,242,201,0.1)" stroke="#F4F2C9" stroke-width="3"/>
+    <polygon points="45,120 155,120 100,25" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>`, vw, vh);
+}
+function figSphere(){
+  const vw=200, vh=150;
+  return svgWrap(`<circle cx="100" cy="75" r="50" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>
+    <ellipse cx="100" cy="75" rx="50" ry="16" fill="none" stroke="#F4F2C9" stroke-width="1.5" stroke-dasharray="4,3"/>`, vw, vh);
+}
+function figPolygon(n){
+  const vw=200, vh=150, cx=100, cy=78, R=55, pts=[];
+  for(let i=0;i<n;i++){ const ang=-Math.PI/2+i*2*Math.PI/n; pts.push(`${cx+R*Math.cos(ang)},${cy+R*Math.sin(ang)}`); }
+  return svgWrap(`<polygon points="${pts.join(' ')}" fill="rgba(244,242,201,0.08)" stroke="#F4F2C9" stroke-width="3"/>`, vw, vh);
+}
+function figParallelTransversal(ang){
+  const vw=200, vh=150;
+  return svgWrap(`<line x1="20" y1="55" x2="180" y2="55" stroke="#F4F2C9" stroke-width="3"/>
+    <line x1="20" y1="105" x2="180" y2="105" stroke="#F4F2C9" stroke-width="3"/>
+    <line x1="60" y1="20" x2="140" y2="140" stroke="#F4F2C9" stroke-width="3"/>
+    <text x="150" y="48" fill="#FF163D" font-size="13" font-weight="700">${ang}°</text>`, vw, vh);
+}
 
 /* ---------- decorative kawaii wallpaper (original SVG shapes: bows, paws, hearts, sparkles) ---------- */
 const DECOR=[
@@ -728,93 +829,119 @@ function mkOptions(correctText, wrongTexts){
   return shuffle(opts);
 }
 
-/* ---- ARITMETICA: 8 stages (7 tipos + repaso mixto) ---- */
+/* ---- ARITMETICA: nivel 4to de secundaria (8 stages, 7 tipos + repaso mixto) ---- */
 function genAritmetica(level){
   const impl=[
-    // 0: suma / resta
+    // 0: operaciones con números enteros (con signo)
     (t)=>{
-      const maxV=lerp(6,30,t);
-      let a=rand(0,maxV), b=rand(0,maxV);
+      const maxV=lerp(10,60,t);
+      const a=rand(-maxV,maxV), b=rand(-maxV,maxV);
       const op=choice(['+','-']);
-      if(op==='-' && a<b){ const tmp=a;a=b;b=tmp; }
       const ans = op==='+'? a+b : a-b;
-      const off=Math.max(2,Math.round(maxV*0.15));
-      const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-off,-2,-1,1,2,off]));
-      return { text:`${a} ${op} ${b} = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`${a} ${op} ${b} = ${ans}`, hint: op==='+' ? 'Puedes juntar primero las unidades y contar desde ahí.' : 'Imagina que vas quitando uno por uno desde el número más grande.' };
+      const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-5,-3,-2,-1,1,2,3,5]));
+      return { text:`(${a}) ${op} (${b}) = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`(${a}) ${op} (${b}) = ${ans}`, hint:'Recuerda la regla de signos: restar un negativo equivale a sumar.' };
     },
-    // 1: multiplicación
+    // 1: multiplicación y división de enteros con signo
     (t)=>{
-      const f1=lerp(2,12,t), f2=lerp(2,15,t);
-      const a=rand(2,Math.max(2,f1)), b=rand(2,Math.max(2,f2));
-      const ans=a*b;
-      const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-a,-b,-1,1,a,b]));
-      return { text:`${a} × ${b} = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`${a} × ${b} = ${ans}`, hint:'Piensa en la tabla de multiplicar de uno de los dos números.' };
-    },
-    // 2: división exacta
-    (t)=>{
-      const divisor=rand(2,Math.max(2,lerp(4,14,t)));
-      const quotient=rand(2,Math.max(2,lerp(5,22,t)));
-      const a=divisor*quotient;
-      const wrongs=uniqueWrongsNum(quotient, ()=>quotient+choice([-3,-2,-1,1,2,3]));
-      return { text:`${a} ÷ ${divisor} = ?`, options:mkOptions(fmt(quotient),wrongs.map(fmt)), explain:`${a} ÷ ${divisor} = ${quotient}, porque ${divisor} × ${quotient} = ${a}`, hint:'Pregúntate: ¿por cuánto multiplico el divisor para llegar al número de arriba?' };
-    },
-    // 3: fracciones
-    (t)=>{
-      if(t<0.5){
-        const d=rand(3,Math.max(3,lerp(4,20,t*2)));
-        const n1=rand(1,d-1), n2=rand(1,d-1), sum=n1+n2;
-        const correct=`${sum}/${d}`;
-        const wrongs=[`${sum-1>=0?sum-1:sum+1}/${d}`, `${sum+1}/${d}`, `${sum}/${d*2}`];
-        return { text:`${n1}/${d} + ${n2}/${d} = ?`, options:mkOptions(correct,wrongs), explain:`Mismo denominador: sumamos arriba. ${n1}+${n2}=${sum}, queda ${sum}/${d}`, hint:'El número de abajo no cambia, solo trabaja con los de arriba.' };
+      const maxF=Math.max(2,lerp(3,15,t));
+      const a=rand(-maxF,maxF)||2;
+      let b=rand(-maxF,maxF); if(b===0) b=3;
+      if(Math.random()<0.5){
+        const ans=a*b;
+        const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-Math.abs(a),-Math.abs(b),-1,1,Math.abs(a),Math.abs(b)]));
+        return { text:`(${a}) × (${b}) = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`Signos iguales dan positivo, signos distintos dan negativo: (${a})×(${b}) = ${ans}`, hint:'Signos iguales = resultado positivo. Signos distintos = resultado negativo.' };
       } else {
-        const d1=rand(2,Math.max(2,Math.round(lerp(3,10,(t-0.5)*2))));
-        const d2=d1+rand(1,3);
-        const n1=rand(1,d1-1), n2=rand(1,d2-1);
-        const commonD=d1*d2;
-        const sumNum=n1*d2 + n2*d1;
-        const correct=`${sumNum}/${commonD}`;
-        const wrongs=[`${n1+n2}/${d1+d2}`, `${sumNum-1}/${commonD}`, `${sumNum+1}/${commonD}`];
-        return { text:`${n1}/${d1} + ${n2}/${d2} = ?`, options:mkOptions(correct,wrongs), explain:`Multiplicamos cruzado: (${n1}×${d2})+(${n2}×${d1}) = ${sumNum}, sobre ${d1}×${d2} = ${commonD}`, hint:'Cuando los denominadores son distintos, multiplícalos para encontrar uno común.' };
+        const dividend=a*b;
+        const wrongs=uniqueWrongsAny(a, ()=>a+choice([-2,-1,1,2]));
+        return { text:`(${dividend}) ÷ (${b}) = ?`, options:mkOptions(fmt(a),wrongs.map(fmt)), explain:`Signos iguales dan positivo, signos distintos dan negativo: (${dividend})÷(${b}) = ${a}`, hint:'Signos iguales = resultado positivo. Signos distintos = resultado negativo.' };
       }
     },
-    // 4: porcentajes
+    // 2: potenciación y radicación
     (t)=>{
-      const PCT_INFO={10:10,20:5,25:4,50:2,75:4,5:20,15:20,40:5,60:5,80:5};
-      const basicSet=[10,20,25,50,75], advSet=[5,15,40,60,80];
-      const pool = t<0.5? basicSet : basicSet.concat(advSet);
-      const p=choice(pool);
-      const k=rand(1,Math.max(1,lerp(6,25,t)));
-      const base=PCT_INFO[p]*k;
-      const ans=base*p/100;
-      const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-10,-5,-2,2,5,10]));
-      return { text:`¿Cuánto es el ${p}% de ${base}?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`${p}% de ${base} = (${p}/100) × ${base} = ${ans}`, hint:'Recuerda: 50% es la mitad, 25% la cuarta parte, 10% es dividir entre 10.' };
-    },
-    // 5: operaciones combinadas con paréntesis
-    (t)=>{
-      if(t<0.5){
-        const a=rand(1,Math.max(1,lerp(9,20,t*2))), b=rand(1,Math.max(1,lerp(9,20,t*2))), c=rand(2,Math.max(2,lerp(5,9,t*2)));
-        const ans=(a+b)*c;
-        const mistake=a+b*c;
-        const wrongs=uniqueWrongsNum(ans, ()=>choice([mistake, ans+c, ans-c, ans+1, ans-1]));
-        return { text:`(${a} + ${b}) × ${c} = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`Primero el paréntesis: ${a}+${b}=${a+b}. Luego ${a+b} × ${c} = ${ans}`, hint:'Siempre resuelve primero lo que está dentro del paréntesis.' };
+      if(Math.random()<0.5){
+        const base=rand(2,Math.max(2,lerp(2,12,t)));
+        const exp=rand(2,3);
+        const ans=Math.pow(base,exp);
+        const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-base,-exp,exp,base,-1,1]));
+        return { text:`${base}${exp===2?'²':'³'} = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`${base}${exp===2?'²':'³'} = ${Array(exp).fill(base).join(' × ')} = ${ans}`, hint:'El exponente indica cuántas veces se multiplica la base por sí misma.' };
       } else {
-        const a=rand(1,15), b=rand(1,15), c=rand(2,8), d=rand(1,10);
-        const ans=(a+b)*c-d;
-        const mistake=a+b*c-d;
-        const wrongs=uniqueWrongsNum(ans, ()=>choice([mistake, ans+d, ans-d, ans+1, ans-1]));
-        return { text:`(${a} + ${b}) × ${c} − ${d} = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`Paréntesis primero: ${a}+${b}=${a+b}. Luego ×${c} = ${(a+b)*c}. Al final restas ${d}: ${ans}`, hint:'Resuelve el paréntesis, multiplica, y al final suma o resta lo que quede afuera.' };
+        const root=rand(2,Math.max(2,lerp(2,20,t)));
+        const sq=root*root;
+        const wrongs=uniqueWrongsAny(root, ()=>root+choice([-3,-2,-1,1,2,3]));
+        return { text:`√${sq} = ?`, options:mkOptions(fmt(root),wrongs.map(fmt)), explain:`√${sq} = ${root}, porque ${root} × ${root} = ${sq}`, hint:'Busca qué número multiplicado por sí mismo da ese resultado.' };
       }
     },
-    // 6: decimales
+    // 3: operaciones combinadas con enteros (jerarquía de operaciones)
     (t)=>{
-      const div = t>0.6 ? 100 : 10;
-      const maxRaw=Math.round(lerp(50,400,t));
-      let a=rand(10,maxRaw)/div, b=rand(10,maxRaw)/div;
-      const op=choice(['+','-']);
-      if(op==='-' && a<b){ const tmp=a;a=b;b=tmp; }
-      const ans=Math.round((op==='+'? a+b : a-b)*100)/100;
-      const wrongs=uniqueWrongsNum(ans, ()=>Math.round((ans+choice([-1,-0.5,-0.1,0.1,0.5,1]))*100)/100);
-      return { text:`${fmt(a)} ${op} ${fmt(b)} = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`${fmt(a)} ${op} ${fmt(b)} = ${fmt(ans)}`, hint:'Alinea las comas decimales como si fueran unidades, y súmalas o réstalas igual.' };
+      const a=rand(-12,12), b=rand(1,Math.max(1,lerp(2,10,t))), c=rand(1,Math.max(1,lerp(2,8,t)));
+      if(t<0.5){
+        const ans=a+b*c;
+        const mistake=(a+b)*c;
+        const wrongs=uniqueWrongsAny(ans, ()=>choice([mistake, ans+c, ans-c, ans+1, ans-1]));
+        return { text:`${a} + ${b} × ${c} = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`Primero la multiplicación: ${b}×${c}=${b*c}. Luego sumas: ${a}+${b*c} = ${ans}`, hint:'La multiplicación y la división se resuelven antes que la suma y la resta.' };
+      } else {
+        const d=rand(1,10);
+        const ans=(a-b)*c+d;
+        const mistake=a-b*c+d;
+        const wrongs=uniqueWrongsAny(ans, ()=>choice([mistake, ans+c, ans-c, ans+1, ans-1]));
+        return { text:`(${a} − ${b}) × ${c} + ${d} = ?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`Paréntesis primero: ${a}−${b}=${a-b}. Luego ×${c} = ${(a-b)*c}. Al final +${d} = ${ans}`, hint:'Resuelve siempre el paréntesis antes que cualquier otra operación.' };
+      }
+    },
+    // 4: fracciones (multiplicación y fracción de un número)
+    (t)=>{
+      if(t<0.5){
+        const n1=rand(1,8), d1=n1+rand(1,6), n2=rand(1,8), d2=n2+rand(1,6);
+        const num=n1*n2, den=d1*d2, g=gcd(num,den), sn=num/g, sd=den/g;
+        const correct=`${sn}/${sd}`;
+        const wrongsSet=new Set([`${num}/${den}`, `${sn+1}/${sd}`, `${sn}/${sd+1}`, `${sn+1}/${sd+1}`].filter(w=>w!==correct));
+        return { text:`${n1}/${d1} × ${n2}/${d2} = ?`, options:mkOptions(correct,[...wrongsSet].slice(0,3)), explain:`Multiplicas arriba con arriba y abajo con abajo: (${n1}×${n2})/(${d1}×${d2}) = ${num}/${den}, simplificado = ${correct}`, hint:'Multiplica numerador por numerador y denominador por denominador, luego simplifica.' };
+      } else {
+        const d=choice([2,3,4,5,6,8,10]), n=rand(1,d-1), base=d*rand(2,Math.max(2,lerp(3,15,t)));
+        const ans=base*n/d;
+        const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-d,-2,-1,1,2,d]));
+        return { text:`¿Cuánto es ${n}/${d} de ${base}?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`${n}/${d} de ${base} = (${n}×${base})÷${d} = ${ans}`, hint:'Multiplica el número por el numerador y luego divide entre el denominador.' };
+      }
+    },
+    // 5: porcentajes aplicados (descuentos, aumentos, interés simple)
+    (t)=>{
+      const kind=rand(0,2);
+      const base=rand(2,Math.max(2,lerp(10,40,t)))*10;
+      const p=choice([5,10,15,20,25,30,40,50]);
+      if(kind===0){
+        const desc=base*p/100, ans=base-desc;
+        const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-20,-10,-5,5,10,20]));
+        return { text:`Un producto cuesta S/ ${base} y tiene ${p}% de descuento. ¿Cuánto se paga al final?`, options:mkOptions('S/ '+fmt(ans),wrongs.map(w=>'S/ '+fmt(w))), explain:`Descuento = ${p}% de ${base} = ${desc}. Precio final = ${base} − ${desc} = S/${ans}`, hint:'Calcula el descuento y réstalo al precio original.' };
+      } else if(kind===1){
+        const aum=base*p/100, ans=base+aum;
+        const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-20,-10,-5,5,10,20]));
+        return { text:`Un producto cuesta S/ ${base} y sube un ${p}%. ¿Cuál es el nuevo precio?`, options:mkOptions('S/ '+fmt(ans),wrongs.map(w=>'S/ '+fmt(w))), explain:`Aumento = ${p}% de ${base} = ${aum}. Nuevo precio = ${base} + ${aum} = S/${ans}`, hint:'Calcula el aumento y súmalo al precio original.' };
+      } else {
+        const years=rand(1,Math.max(1,lerp(1,4,t)));
+        const ans=base*p/100*years;
+        const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-20,-10,-5,5,10,20]));
+        return { text:`Se invierte S/ ${base} al ${p}% de interés simple anual. ¿Cuánto interés se gana en ${years} año${years>1?'s':''}?`, options:mkOptions('S/ '+fmt(ans),wrongs.map(w=>'S/ '+fmt(w))), explain:`Interés = capital × tasa × tiempo = ${base} × ${p}% × ${years} = S/${ans}`, hint:'El interés simple es capital por tasa por tiempo.' };
+      }
+    },
+    // 6: regla de tres simple (directa e inversa)
+    (t)=>{
+      if(Math.random()<0.5){
+        const unit=rand(2,Math.max(2,lerp(3,25,t)));
+        const a=rand(2,Math.max(2,lerp(2,12,t)));
+        const b=unit*a;
+        const c=rand(2,Math.max(2,lerp(2,15,t)));
+        const ans=unit*c;
+        const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-unit,-1,1,unit]));
+        return { text:`Si ${a} cuadernos cuestan S/ ${b}, ¿cuánto cuestan ${c} cuadernos (mismo precio cada uno)?`, options:mkOptions('S/ '+fmt(ans),wrongs.map(w=>'S/ '+fmt(w))), explain:`Cada cuaderno cuesta S/${b}÷${a} = S/${unit}. Entonces ${c} cuadernos cuestan ${unit}×${c} = S/${ans}`, hint:'En proporción directa, halla el valor de uno y luego multiplica.' };
+      } else {
+        const factor=rand(2,4);
+        const k=rand(2,Math.max(2,lerp(3,12,t)));
+        const dias=factor*k;
+        const obreros=rand(2,Math.max(2,lerp(2,10,t)));
+        const obreros2=obreros*factor;
+        const ans=k;
+        const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-2,-1,1,2]));
+        return { text:`${obreros} obreros hacen un trabajo en ${dias} días. ¿En cuántos días lo harían ${obreros2} obreros, trabajando al mismo ritmo?`, options:mkOptions(fmt(ans)+' días',wrongs.map(w=>fmt(w)+' días')), explain:`Trabajo total = ${obreros}×${dias} = ${obreros*dias} obrero-días. Con ${obreros2} obreros: ${obreros*dias}÷${obreros2} = ${ans} días`, hint:'A más obreros, menos días: es una proporción inversa.' };
+      }
     }
   ];
   const {stage,t}=stageInfo(level,8);
@@ -822,53 +949,95 @@ function genAritmetica(level){
   return impl[rand(0,6)](1);
 }
 
-/* ---- ALGEBRA: 8 stages ---- */
+/* ---- ALGEBRA: nivel 4to de secundaria (8 stages) ---- */
 function genAlgebra(level){
   const impl=[
+    // 0: ecuaciones lineales con enteros (incluye soluciones negativas)
     (t)=>{
-      const x=rand(0,Math.max(0,lerp(0,25,t))), a=rand(1,Math.max(1,lerp(1,30,t))), b=x+a;
-      const wrongs=uniqueWrongsNum(x, ()=>x+choice([-3,-2,-1,1,2,3]));
-      return { text:`x + ${a} = ${b}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`x = ${b} − ${a} = ${x}`, hint:'Lo que está sumando de un lado, pasa restando al otro.' };
+      const a=rand(2,Math.max(2,lerp(2,12,t)));
+      const x=rand(-Math.max(5,lerp(5,20,t)), Math.max(5,lerp(5,20,t))) || 1;
+      const b=rand(-20,20);
+      const c=a*x+b;
+      const wrongs=uniqueWrongsAny(x, ()=>x+choice([-3,-2,-1,1,2,3]));
+      const bStr = b>=0? `+ ${b}` : `− ${Math.abs(b)}`;
+      return { text:`${a}x ${bStr} = ${c}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`${a}x = ${c} ${b>=0?'−':'+'} ${Math.abs(b)} = ${a*x}, entonces x = ${a*x}÷${a} = ${x}`, hint:'Pasa el número suelto al otro lado cambiando su signo, y luego despeja dividiendo.' };
     },
+    // 1: productos notables
     (t)=>{
-      if(Math.random()<0.5){
-        const a=rand(1,Math.max(1,lerp(1,18,t))), x=rand(1,Math.max(1,lerp(1,20,t))), b=x-a;
-        const wrongs=uniqueWrongsNum(x, ()=>x+choice([-3,-2,-1,1,2,3]));
-        return { text:`x − ${a} = ${b}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`x = ${b} + ${a} = ${x}`, hint:'Lo que resta de un lado, pasa sumando al otro.' };
+      const a=rand(2,Math.max(2,lerp(2,12,t)));
+      const kind=rand(0,2);
+      if(kind===0){
+        const correct=`x² + ${2*a}x + ${a*a}`;
+        const wrongs=[`x² + ${a}x + ${a*a}`, `x² + ${2*a}x + ${a}`, `x² − ${2*a}x + ${a*a}`];
+        return { text:`(x + ${a})² = ?`, options:mkOptions(correct,wrongs), explain:`(x+${a})² = x² + 2×${a}x + ${a}² = x² + ${2*a}x + ${a*a}`, hint:'El cuadrado de un binomio: cuadrado del primero, más el doble producto, más cuadrado del segundo.' };
+      } else if(kind===1){
+        const correct=`x² − ${2*a}x + ${a*a}`;
+        const wrongs=[`x² − ${a}x + ${a*a}`, `x² − ${2*a}x − ${a*a}`, `x² + ${2*a}x + ${a*a}`];
+        return { text:`(x − ${a})² = ?`, options:mkOptions(correct,wrongs), explain:`(x−${a})² = x² − 2×${a}x + ${a}² = x² − ${2*a}x + ${a*a}`, hint:'El cuadrado de una diferencia también lleva el doble producto, pero restando.' };
       } else {
-        const a=rand(2,Math.max(2,lerp(2,14,t))), x=rand(1,Math.max(1,lerp(1,15,t))), b=a*x;
-        const wrongs=uniqueWrongsNum(x, ()=>x+choice([-2,-1,1,2]));
-        return { text:`${a} · x = ${b}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`x = ${b} ÷ ${a} = ${x}`, hint:'Lo que multiplica de un lado, pasa dividiendo al otro.' };
+        const correct=`x² − ${a*a}`;
+        const wrongs=[`x² + ${a*a}`, `x² − ${a}`, `x² − ${2*a}x − ${a*a}`];
+        return { text:`(x + ${a})(x − ${a}) = ?`, options:mkOptions(correct,wrongs), explain:`Es diferencia de cuadrados: (x+${a})(x−${a}) = x² − ${a}² = x² − ${a*a}`, hint:'Suma por diferencia de los mismos términos = diferencia de cuadrados.' };
       }
     },
+    // 2: factorización
     (t)=>{
-      const a=rand(2,Math.max(2,lerp(2,10,t))), x=rand(1,Math.max(1,lerp(1,16,t))), b=rand(1,Math.max(1,lerp(1,30,t))), c=a*x+b;
-      const wrongs=uniqueWrongsNum(x, ()=>x+choice([-2,-1,1,2]));
-      return { text:`${a}x + ${b} = ${c}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`${a}x = ${c}−${b} = ${a*x}, entonces x = ${a*x}÷${a} = ${x}`, hint:'Primero despeja el número suelto, después el que acompaña a la x.' };
+      if(Math.random()<0.5){
+        const a=rand(2,Math.max(2,lerp(2,9,t)));
+        const y=rand(1,9);
+        const correctAns=`${a}(x + ${y})`;
+        const wrongs=[`${a}(x + ${y+1})`, `(x + ${y})`, `${a}x + ${y}`];
+        return { text:`Factoriza: ${a}x + ${a*y}`, options:mkOptions(correctAns,wrongs), explain:`El factor común es ${a}: ${a}x + ${a*y} = ${a}(x + ${y})`, hint:'Busca el número que se repite multiplicando en ambos términos y sácalo del paréntesis.' };
+      } else {
+        const a=rand(2,Math.max(2,lerp(2,12,t)));
+        const correct=`(x + ${a})(x − ${a})`;
+        const wrongs=[`(x − ${a})²`, `(x + ${a})²`, `(x + ${a*a})(x − 1)`];
+        return { text:`Factoriza: x² − ${a*a}`, options:mkOptions(correct,wrongs), explain:`x² − ${a*a} es diferencia de cuadrados: (x + ${a})(x − ${a})`, hint:'Si ves "algo al cuadrado menos otro cuadrado", se factoriza como suma por diferencia.' };
+      }
     },
+    // 3: ecuaciones cuadráticas (factorizables, raíces enteras)
     (t)=>{
-      const a=rand(3,Math.max(3,lerp(3,10,t))), x=rand(1,Math.max(1,lerp(1,14,t))), b=rand(1,Math.max(1,lerp(1,20,t))), c=a*x-b;
-      const wrongs=uniqueWrongsNum(x, ()=>x+choice([-2,-1,1,2]));
-      return { text:`${a}x − ${b} = ${c}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`${a}x = ${c}+${b} = ${a*x}, entonces x = ${a*x}÷${a} = ${x}`, hint:'Primero mueve el número que resta, luego el que multiplica a la x.' };
+      const lim=Math.max(3,lerp(3,10,t));
+      let r1=rand(-lim,lim); if(r1===0) r1=1;
+      let r2; do { r2=rand(-lim,lim); } while(r2===0 || r2===r1);
+      const b=-(r1+r2), c=r1*r2;
+      const bStr = b===0? '' : (b>0? ` + ${b}x` : ` − ${Math.abs(b)}x`);
+      const cStr = c===0? '' : (c>0? ` + ${c}` : ` − ${Math.abs(c)}`);
+      const correct=`x = ${r1} o x = ${r2}`;
+      const wrongs=[`x = ${r1} o x = ${-r2}`, `x = ${-r1} o x = ${r2}`, `x = ${r1+1} o x = ${r2-1}`];
+      return { text:`Resuelve: x²${bStr}${cStr} = 0`, options:mkOptions(correct,wrongs), explain:`Buscas dos números que sumados den ${-b} y multiplicados den ${c}: son ${r1} y ${r2}. Entonces x=${r1} o x=${r2}`, hint:'Busca dos números que multiplicados den el término independiente y sumados den el coeficiente de x (con signo cambiado).' };
     },
+    // 4: sistema de ecuaciones lineales 2x2
     (t)=>{
-      const a=rand(2,Math.max(2,lerp(2,9,t))), x=rand(0,Math.max(0,lerp(0,16,t))), b=rand(1,Math.max(1,lerp(1,16,t))), c=a*(x+b);
-      const wrongs=uniqueWrongsNum(x, ()=>x+choice([-2,-1,1,2]));
-      return { text:`${a} · (x + ${b}) = ${c}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`(x+${b}) = ${c}÷${a} = ${x+b}, entonces x = ${x+b}−${b} = ${x}`, hint:'Lo que está entre paréntesis, trátalo primero como un solo bloque.' };
+      const lim=Math.max(3,lerp(3,9,t));
+      const x=rand(-lim,lim); let y; do { y=rand(-lim,lim); } while(y===x);
+      const a1=rand(1,4), b1=rand(1,4), a2=rand(1,4), b2=rand(1,4);
+      const c1=a1*x+b1*y, c2=a2*x+b2*y;
+      const correct=`x = ${x}, y = ${y}`;
+      const wrongs=[`x = ${x+1}, y = ${y}`, `x = ${x}, y = ${y+1}`, `x = ${y}, y = ${x}`];
+      return { text:`Resuelve el sistema:\n${a1}x + ${b1}y = ${c1}\n${a2}x + ${b2}y = ${c2}`, options:mkOptions(correct,wrongs), explain:`Resolviendo por reducción o sustitución se obtiene x = ${x}, y = ${y}. Comprobación: ${a1}×${x} + ${b1}×${y} = ${c1} ✓`, hint:'Multiplica una ecuación para igualar coeficientes y poder eliminar una variable restando.' };
     },
+    // 5: inecuaciones lineales
     (t)=>{
-      const a=rand(2,Math.max(2,lerp(2,9,t))), k=rand(0,Math.max(0,lerp(0,16,t))), x=a*k, b=rand(1,Math.max(1,lerp(1,16,t))), c=k+b;
-      const wrongs=uniqueWrongsNum(x, ()=>x+choice([-a,-1,1,a]));
-      return { text:`x/${a} + ${b} = ${c}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`x/${a} = ${c}−${b} = ${k}, entonces x = ${a}×${k} = ${x}`, hint:'Si x está dividida entre un número, ese número pasa multiplicando al otro lado.' };
+      const a=rand(2,Math.max(2,lerp(2,9,t)));
+      const x=rand(-Math.max(5,lerp(5,15,t)), Math.max(5,lerp(5,15,t)));
+      const b=rand(-15,15);
+      const op=choice(['>','<','≥','≤']);
+      const c=a*x+b;
+      const opp={'>':'<','<':'>','≥':'≤','≤':'≥'};
+      const correct=`x ${op} ${x}`;
+      const wrongs=[`x ${opp[op]} ${x}`, `x ${op} ${x+2}`, `x ${op} ${x-2}`];
+      const bStr=b>=0?`+ ${b}`:`− ${Math.abs(b)}`;
+      return { text:`Resuelve: ${a}x ${bStr} ${op} ${c}`, options:mkOptions(correct,wrongs), explain:`Despejas igual que una ecuación: x ${op} (${c} ${b>=0?'−':'+'} ${Math.abs(b)}) ÷ ${a} = ${x}. Como ${a} es positivo, la desigualdad no cambia de sentido.`, hint:'Si divides entre un número positivo la desigualdad no cambia; si divides entre uno negativo, se invierte.' };
     },
+    // 6: valor numérico de polinomios
     (t)=>{
-      const c=rand(1,Math.max(1,lerp(1,7,t)));
-      const a=c+rand(1,Math.max(1,lerp(2,7,t)));
-      const x=rand(1,Math.max(1,lerp(1,13,t)));
-      const b=rand(1,Math.max(1,lerp(1,20,t)));
-      const d=b+(a-c)*x;
-      const wrongs=uniqueWrongsNum(x, ()=>x+choice([-2,-1,1,2]));
-      return { text:`${a}x + ${b} = ${c}x + ${d}  →  x = ?`, options:mkOptions(fmt(x),wrongs.map(fmt)), explain:`Junta las x: ${a}x−${c}x = ${a-c}x. Junta los números: ${d}−${b} = ${d-b}. Entonces ${a-c}x = ${d-b}, x = ${x}`, hint:'Junta todas las x en un lado y todos los números en el otro.' };
+      const a=rand(1,Math.max(1,lerp(1,8,t))), b=rand(1,Math.max(1,lerp(1,8,t))), c=rand(-10,10);
+      const x=rand(-Math.max(3,lerp(3,8,t)), Math.max(3,lerp(3,8,t)));
+      const ans=a*x*x+b*x+c;
+      const wrongs=uniqueWrongsAny(ans, ()=>ans+choice([-a,-b,-2,2,a,b]));
+      const cStr=c>=0?`+ ${c}`:`− ${Math.abs(c)}`;
+      return { text:`Si P(x) = ${a}x² + ${b}x ${cStr}, ¿cuál es el valor de P(${x})?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`P(${x}) = ${a}×${x}² + ${b}×${x} ${cStr} = ${a*x*x} + ${b*x} ${cStr} = ${ans}`, hint:'Reemplaza la x por el número dado y resuelve respetando el orden de operaciones.' };
     }
   ];
   const {stage,t}=stageInfo(level,8);
@@ -876,41 +1045,57 @@ function genAlgebra(level){
   return impl[rand(0,6)](1);
 }
 
-/* ---- GEOMETRIA: 8 stages ---- */
+/* ---- GEOMETRIA: nivel 4to de secundaria (8 stages), con dibujo SVG en cada pregunta ---- */
+const PITAGORICAS=[[3,4,5],[6,8,10],[5,12,13],[8,15,17],[9,12,15],[7,24,25],[20,21,29],[9,40,41]];
 function genGeometria(level){
   const impl=[
+    // 0: perímetro y área de cuadrado/rectángulo
     (t)=>{
-      if(Math.random()<0.5){
-        const L=rand(2,Math.max(2,lerp(4,60,t)));
-        const P=4*L;
-        const wrongs=uniqueWrongsNum(P, ()=>P+choice([-8,-4,-2,2,4,8]));
-        return { text:`Un cuadrado tiene lado ${L} cm. ¿Cuál es su perímetro?`, options:mkOptions(fmt(P)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Perímetro = 4 × lado = 4 × ${L} = ${P} cm`, hint:'El perímetro es la suma de todos los lados de la figura.' };
+      const square=Math.random()<0.5;
+      const doArea=Math.random()<0.5;
+      if(square){
+        const L=rand(3,Math.max(3,lerp(5,60,t)));
+        if(doArea){ const A=L*L; const wrongs=uniqueWrongsNum(A, ()=>A+choice([-2*L,-L,L,2*L])); return { text:`Un cuadrado tiene lado ${L} cm. ¿Cuál es su área?`, svg:figRect(L,L), options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Área = lado² = ${L}² = ${A} cm²`, hint:'El área del cuadrado es el lado multiplicado por sí mismo.' }; }
+        const P=4*L; const wrongs=uniqueWrongsNum(P, ()=>P+choice([-8,-4,-2,2,4,8])); return { text:`Un cuadrado tiene lado ${L} cm. ¿Cuál es su perímetro?`, svg:figRect(L,L), options:mkOptions(fmt(P)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Perímetro = 4 × lado = 4 × ${L} = ${P} cm`, hint:'Suma los cuatro lados iguales.' };
       } else {
-        const b=rand(3,Math.max(3,lerp(5,50,t))), h=rand(2,Math.max(2,lerp(4,45,t)));
-        const P=2*(b+h);
-        const wrongs=uniqueWrongsNum(P, ()=>P+choice([-8,-4,-2,2,4,8]));
-        return { text:`Un rectángulo tiene base ${b} cm y altura ${h} cm. ¿Cuál es su perímetro?`, options:mkOptions(fmt(P)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Perímetro = 2×(base+altura) = 2×(${b}+${h}) = ${P} cm`, hint:'El perímetro es la suma de todos los lados de la figura.' };
+        const b=rand(4,Math.max(4,lerp(6,60,t))), h=rand(3,Math.max(3,lerp(4,50,t)));
+        if(doArea){ const A=b*h; const wrongs=uniqueWrongsNum(A, ()=>A+choice([-b,-h,b,h])); return { text:`Un rectángulo tiene base ${b} cm y altura ${h} cm. ¿Cuál es su área?`, svg:figRect(b,h), options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Área = base × altura = ${b}×${h} = ${A} cm²`, hint:'Multiplica la base por la altura.' }; }
+        const P=2*(b+h); const wrongs=uniqueWrongsNum(P, ()=>P+choice([-8,-4,-2,2,4,8])); return { text:`Un rectángulo tiene base ${b} cm y altura ${h} cm. ¿Cuál es su perímetro?`, svg:figRect(b,h), options:mkOptions(fmt(P)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Perímetro = 2×(base+altura) = 2×(${b}+${h}) = ${P} cm`, hint:'Suma todos los lados: dos bases y dos alturas.' };
       }
     },
+    // 1: teorema de Pitágoras
     (t)=>{
-      if(Math.random()<0.5){
-        const L=rand(2,Math.max(2,lerp(4,40,t)));
-        const A=L*L;
-        const wrongs=uniqueWrongsNum(A, ()=>A+choice([-2*L,-L,L,2*L]));
-        return { text:`Un cuadrado tiene lado ${L} cm. ¿Cuál es su área?`, options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Área = lado × lado = ${L} × ${L} = ${A} cm²`, hint:'El área multiplica dos medidas, por eso el resultado va en cm².' };
+      const k=rand(1,Math.max(1,lerp(1,6,t)));
+      const [a0,b0,c0]=choice(PITAGORICAS);
+      const a=a0*k, b=b0*k, c=c0*k;
+      if(Math.random()<0.6){
+        const wrongs=uniqueWrongsNum(c, ()=>c+choice([-4,-2,-1,1,2,4]));
+        return { text:`Un triángulo rectángulo tiene catetos de ${a} cm y ${b} cm. ¿Cuánto mide la hipotenusa?`, svg:figRightTriangle(a,b,c), options:mkOptions(fmt(c)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Por el Teorema de Pitágoras: hipotenusa² = ${a}²+${b}² = ${a*a}+${b*b} = ${a*a+b*b}, entonces hipotenusa = ${c} cm`, hint:'El cuadrado de la hipotenusa es igual a la suma de los cuadrados de los catetos.' };
       } else {
-        const b=rand(3,Math.max(3,lerp(5,35,t))), h=rand(2,Math.max(2,lerp(4,32,t)));
-        const A=b*h;
-        const wrongs=uniqueWrongsNum(A, ()=>A+choice([-b,-h,b,h]));
-        return { text:`Un rectángulo tiene base ${b} cm y altura ${h} cm. ¿Cuál es su área?`, options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Área = base × altura = ${b} × ${h} = ${A} cm²`, hint:'El área multiplica dos medidas, por eso el resultado va en cm².' };
+        const wrongs=uniqueWrongsNum(b, ()=>b+choice([-4,-2,-1,1,2,4]));
+        return { text:`Un triángulo rectángulo tiene hipotenusa ${c} cm y un cateto de ${a} cm. ¿Cuánto mide el otro cateto?`, svg:figRightTriangle(a,b,c), options:mkOptions(fmt(b)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`cateto² = ${c}²−${a}² = ${c*c}−${a*a} = ${c*c-a*a}, entonces cateto = ${b} cm`, hint:'Despeja restando los cuadrados: hipotenusa² menos el cateto conocido².' };
       }
     },
+    // 2: círculo (área y circunferencia)
+    (t)=>{
+      const r=rand(1,Math.max(1,lerp(3,25,t)));
+      if(Math.random()<0.5){
+        const A=Math.round(3.14*r*r*100)/100;
+        const wrongs=uniqueWrongsNum(A, ()=>Math.round((A+choice([-6.28,-3.14,3.14,6.28]))*100)/100);
+        return { text:`Un círculo tiene radio ${r} cm. ¿Cuál es su área? (usa π ≈ 3.14)`, svg:figCircle(r), options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Área = π × r² = 3.14 × ${r} × ${r} = ${A} cm²`, hint:'Eleva el radio al cuadrado antes de multiplicar por π.' };
+      } else {
+        const C=Math.round(6.28*r*100)/100;
+        const wrongs=uniqueWrongsNum(C, ()=>Math.round((C+choice([-6.28,-3.14,3.14,6.28]))*100)/100);
+        return { text:`Un círculo tiene radio ${r} cm. ¿Cuál es su circunferencia? (usa π ≈ 3.14)`, svg:figCircle(r), options:mkOptions(fmt(C)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Circunferencia = 2 × π × r = 2 × 3.14 × ${r} = ${C} cm`, hint:'La circunferencia es el doble del radio, multiplicado por π.' };
+      }
+    },
+    // 3: figuras compuestas y triángulos
     (t)=>{
       if(Math.random()<0.5){
-        const b=rand(2,Math.max(2,Math.round(lerp(2,20,t))))*2, h=rand(2,Math.max(2,lerp(3,30,t)));
-        const A=(b*h)/2;
-        const wrongs=uniqueWrongsNum(A, ()=>A+choice([-6,-4,-2,2,4,6]));
-        return { text:`Un triángulo tiene base ${b} cm y altura ${h} cm. ¿Cuál es su área?`, options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Área = (base × altura) ÷ 2 = (${b} × ${h}) ÷ 2 = ${A} cm²`, hint:'El área de un triángulo siempre termina dividida entre 2.' };
+        const b=rand(2,Math.max(2,Math.round(lerp(2,16,t))))*2, h=rand(3,Math.max(3,lerp(4,20,t))), h2=rand(2,Math.max(2,lerp(3,16,t)));
+        const A=b*h + (b*h2)/2;
+        const wrongs=uniqueWrongsNum(A, ()=>A+choice([-8,-4,-2,2,4,8]));
+        return { text:`Una figura tiene un rectángulo de base ${b} y altura ${h}, con un triángulo encima de la misma base y altura ${h2}. ¿Cuál es el área total?`, svg:figCompound(b,h,h2), options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Rectángulo: ${b}×${h}=${b*h}. Triángulo: (${b}×${h2})÷2=${(b*h2)/2}. Total: ${b*h}+${(b*h2)/2}=${A} cm²`, hint:'Divide la figura en partes más simples y suma sus áreas.' };
       } else {
         const maxS=Math.max(3,lerp(5,40,t));
         let a=rand(3,maxS), b=rand(3,maxS), c=rand(3,maxS), tries=0;
@@ -918,45 +1103,50 @@ function genGeometria(level){
         if(a+b<=c || a+c<=b || b+c<=a){ a=maxS; b=maxS; c=maxS; }
         const P=a+b+c;
         const wrongs=uniqueWrongsNum(P, ()=>P+choice([-4,-2,-1,1,2,4]));
-        return { text:`Un triángulo tiene lados ${a}, ${b} y ${c} cm. ¿Cuál es su perímetro?`, options:mkOptions(fmt(P)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Perímetro = suma de los 3 lados = ${a}+${b}+${c} = ${P} cm`, hint:'Solo suma los tres lados, sin ninguna fórmula rara.' };
+        return { text:`Un triángulo tiene lados ${a}, ${b} y ${c} cm. ¿Cuál es su perímetro?`, svg:figTriangleGeneric(a,b,c), options:mkOptions(fmt(P)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Perímetro = suma de los 3 lados = ${a}+${b}+${c} = ${P} cm`, hint:'Solo suma los tres lados.' };
       }
     },
-    (t)=>{
-      const r=rand(1,Math.max(1,lerp(3,25,t)));
-      if(Math.random()<0.5){
-        const A=Math.round(3.14*r*r*100)/100;
-        const wrongs=uniqueWrongsNum(A, ()=>Math.round((A+choice([-6.28,-3.14,3.14,6.28]))*100)/100);
-        return { text:`Un círculo tiene radio ${r} cm. ¿Cuál es su área? (usa π ≈ 3.14)`, options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Área = π × r² = 3.14 × ${r} × ${r} = ${A} cm²`, hint:'Eleva el radio al cuadrado antes de multiplicar por π.' };
-      } else {
-        const C=Math.round(6.28*r*100)/100;
-        const wrongs=uniqueWrongsNum(C, ()=>Math.round((C+choice([-6.28,-3.14,3.14,6.28]))*100)/100);
-        return { text:`Un círculo tiene radio ${r} cm. ¿Cuál es su circunferencia? (usa π ≈ 3.14)`, options:mkOptions(fmt(C)+' cm',wrongs.map(w=>fmt(w)+' cm')), explain:`Circunferencia = 2 × π × r = 2 × 3.14 × ${r} = ${C} cm`, hint:'La circunferencia es el doble del radio, multiplicado por π.' };
-      }
-    },
-    (t)=>{
-      const b=rand(2,Math.max(2,Math.round(lerp(2,16,t))))*2, h=rand(3,Math.max(3,lerp(4,20,t))), h2=rand(2,Math.max(2,lerp(3,16,t)));
-      const A=b*h + (b*h2)/2;
-      const wrongs=uniqueWrongsNum(A, ()=>A+choice([-8,-4,-2,2,4,8]));
-      return { text:`Una figura tiene un rectángulo de base ${b} y altura ${h}, con un triángulo encima de la misma base y altura ${h2}. ¿Cuál es el área total?`, options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Rectángulo: ${b}×${h}=${b*h}. Triángulo: (${b}×${h2})÷2=${(b*h2)/2}. Total: ${b*h}+${(b*h2)/2}=${A} cm²`, hint:'Divide la figura en partes más simples y suma sus áreas.' };
-    },
+    // 4: volumen de cubo y prisma
     (t)=>{
       if(Math.random()<0.5){
         const L=rand(2,Math.max(2,lerp(2,15,t)));
         const V=L*L*L;
         const wrongs=uniqueWrongsNum(V, ()=>V+choice([-3*L,-L,L,3*L]));
-        return { text:`Un cubo tiene arista ${L} cm. ¿Cuál es su volumen?`, options:mkOptions(fmt(V)+' cm³',wrongs.map(w=>fmt(w)+' cm³')), explain:`Volumen = lado³ = ${L}×${L}×${L} = ${V} cm³`, hint:'El volumen usa tres medidas multiplicadas entre sí.' };
+        return { text:`Un cubo tiene arista ${L} cm. ¿Cuál es su volumen?`, svg:figBox(true), options:mkOptions(fmt(V)+' cm³',wrongs.map(w=>fmt(w)+' cm³')), explain:`Volumen = lado³ = ${L}×${L}×${L} = ${V} cm³`, hint:'El volumen usa tres medidas multiplicadas entre sí.' };
       } else {
         const l=rand(2,Math.max(2,lerp(2,18,t))), w=rand(2,Math.max(2,lerp(2,18,t))), h=rand(2,Math.max(2,lerp(2,18,t)));
         const V=l*w*h;
         const wrongs=uniqueWrongsNum(V, ()=>V+choice([-l*w,-w*h,l*w,w*h]));
-        return { text:`Un prisma rectangular mide ${l}×${w}×${h} cm. ¿Cuál es su volumen?`, options:mkOptions(fmt(V)+' cm³',wrongs.map(w2=>fmt(w2)+' cm³')), explain:`Volumen = largo × ancho × alto = ${l}×${w}×${h} = ${V} cm³`, hint:'El volumen usa tres medidas multiplicadas entre sí.' };
+        return { text:`Un prisma rectangular mide ${l}×${w}×${h} cm. ¿Cuál es su volumen?`, svg:figBox(false), options:mkOptions(fmt(V)+' cm³',wrongs.map(w2=>fmt(w2)+' cm³')), explain:`Volumen = largo × ancho × alto = ${l}×${w}×${h} = ${V} cm³`, hint:'El volumen usa tres medidas multiplicadas entre sí.' };
       }
     },
+    // 5: cono y esfera
     (t)=>{
-      const b1=rand(3,Math.max(3,lerp(4,25,t))), b2=rand(3,Math.max(3,lerp(4,25,t))), h=rand(2,Math.max(2,lerp(3,18,t)));
-      const A=Math.round(((b1+b2)*h/2)*100)/100;
-      const wrongs=uniqueWrongsNum(A, ()=>Math.round((A+choice([-6,-4,-2,2,4,6]))*100)/100);
-      return { text:`Un trapecio tiene bases ${b1} cm y ${b2} cm, y altura ${h} cm. ¿Cuál es su área?`, options:mkOptions(fmt(A)+' cm²',wrongs.map(w=>fmt(w)+' cm²')), explain:`Área = (base mayor + base menor) × altura ÷ 2 = (${b1}+${b2}) × ${h} ÷ 2 = ${A} cm²`, hint:'Suma las dos bases paralelas, multiplica por la altura, y divide entre 2.' };
+      const r=rand(2,Math.max(2,lerp(3,20,t)));
+      if(Math.random()<0.5){
+        const V=Math.round((3.14*r*r*r*4/3)*100)/100;
+        const wrongs=uniqueWrongsNum(V, ()=>Math.round((V+choice([-20,-10,-5,5,10,20]))*100)/100);
+        return { text:`Una esfera tiene radio ${r} cm. ¿Cuál es su volumen? (π≈3.14, V=(4/3)πr³)`, svg:figSphere(), options:mkOptions(fmt(V)+' cm³',wrongs.map(w=>fmt(w)+' cm³')), explain:`V = (4/3) × 3.14 × ${r}³ = ${V} cm³`, hint:'Eleva el radio al cubo antes de multiplicar por 4/3 y por π.' };
+      } else {
+        const h=rand(3,Math.max(3,lerp(4,25,t)));
+        const V=Math.round((3.14*r*r*h/3)*100)/100;
+        const wrongs=uniqueWrongsNum(V, ()=>Math.round((V+choice([-20,-10,-5,5,10,20]))*100)/100);
+        return { text:`Un cono tiene radio ${r} cm y altura ${h} cm. ¿Cuál es su volumen? (π≈3.14, V=(1/3)πr²h)`, svg:figCone(), options:mkOptions(fmt(V)+' cm³',wrongs.map(w=>fmt(w)+' cm³')), explain:`V = (1/3) × 3.14 × ${r}² × ${h} = ${V} cm³`, hint:'Multiplica π por el radio al cuadrado y la altura, luego divide entre 3.' };
+      }
+    },
+    // 6: ángulos
+    (t)=>{
+      if(Math.random()<0.5){
+        const n=rand(3,Math.max(3,Math.min(10,lerp(4,10,t))));
+        const sum=(n-2)*180;
+        const wrongs=uniqueWrongsNum(sum, ()=>sum+choice([-180,-90,90,180]));
+        return { text:`¿Cuánto suman los ángulos internos de un polígono de ${n} lados?`, svg:figPolygon(n), options:mkOptions(fmt(sum)+'°',wrongs.map(w=>fmt(w)+'°')), explain:`Suma de ángulos internos = (n−2)×180° = (${n}−2)×180° = ${sum}°`, hint:'Resta 2 al número de lados y multiplica por 180°.' };
+      } else {
+        const ang=rand(20,160);
+        const comp=180-ang;
+        const wrongs=uniqueWrongsNum(comp, ()=>comp+choice([-20,-10,10,20]));
+        return { text:`Dos rectas paralelas son cortadas por una transversal. Si un ángulo mide ${ang}°, ¿cuánto mide su ángulo suplementario (el par lineal)?`, svg:figParallelTransversal(ang), options:mkOptions(fmt(comp)+'°',wrongs.map(w=>fmt(w)+'°')), explain:`Los ángulos suplementarios suman 180°: 180° − ${ang}° = ${comp}°`, hint:'Dos ángulos suplementarios siempre suman 180°.' };
+      }
     }
   ];
   const {stage,t}=stageInfo(level,8);
@@ -986,10 +1176,10 @@ function genTrigonometria(level){
       const [a,b,c]=choice(pool);
       if(Math.random()<0.5){
         const wrongs=uniqueWrongsNum(c, ()=>c+choice([-2,-1,1,2]));
-        return { text:`Un triángulo rectángulo tiene catetos ${a} y ${b}. ¿Cuánto mide la hipotenusa?`, options:mkOptions(fmt(c),wrongs.map(fmt)), explain:`c² = a²+b² = ${a}²+${b}² = ${a*a}+${b*b} = ${a*a+b*b}. c = √${a*a+b*b} = ${c}`, hint:'Usa el teorema de Pitágoras: a² + b² = c² (c siempre es la hipotenusa).' };
+        return { text:`Un triángulo rectángulo tiene catetos ${a} y ${b}. ¿Cuánto mide la hipotenusa?`, svg:figRightTriangle(a,b,c), options:mkOptions(fmt(c),wrongs.map(fmt)), explain:`c² = a²+b² = ${a}²+${b}² = ${a*a}+${b*b} = ${a*a+b*b}. c = √${a*a+b*b} = ${c}`, hint:'Usa el teorema de Pitágoras: a² + b² = c² (c siempre es la hipotenusa).' };
       } else {
         const wrongs=uniqueWrongsNum(a, ()=>a+choice([-2,-1,1,2]));
-        return { text:`Un triángulo rectángulo tiene hipotenusa ${c} y un cateto ${b}. ¿Cuánto mide el otro cateto?`, options:mkOptions(fmt(a),wrongs.map(fmt)), explain:`cateto² = c²−b² = ${c}²−${b}² = ${c*c-b*b}. cateto = √${c*c-b*b} = ${a}`, hint:'Usa el teorema de Pitágoras: a² + b² = c² (c siempre es la hipotenusa).' };
+        return { text:`Un triángulo rectángulo tiene hipotenusa ${c} y un cateto ${b}. ¿Cuánto mide el otro cateto?`, svg:figRightTriangle(a,b,c), options:mkOptions(fmt(a),wrongs.map(fmt)), explain:`cateto² = c²−b² = ${c}²−${b}² = ${c*c-b*b}. cateto = √${c*c-b*b} = ${a}`, hint:'Usa el teorema de Pitágoras: a² + b² = c² (c siempre es la hipotenusa).' };
       }
     },
     (t)=>{
@@ -1007,6 +1197,7 @@ function genTrigonometria(level){
       const wrongs=shuffle(allFracs.filter(f=>f!==pick.frac)).slice(0,3);
       return {
         text:`Un triángulo rectángulo tiene catetos ${op} y ${ad}, e hipotenusa ${hip}. ¿Cuánto vale ${pick.ratio}(θ) para ese ángulo?`,
+        svg: figRightTriangle(op,ad,hip),
         options: mkOptions(pick.frac, wrongs),
         explain:`${pick.ratio}(θ) se calcula usando el lado ${pick.explainSide}. Con estos lados queda ${pick.frac}.`,
         hint:'Opuesto es el lado de enfrente, adyacente el que está al lado, hipotenusa la más larga.'
@@ -1048,57 +1239,72 @@ function genTrigonometria(level){
   return impl[rand(0,4)](1);
 }
 
-/* ---- RAZONAMIENTO: 6 stages ---- */
+/* ---- RAZONAMIENTO MATEMÁTICO: nivel 4to de secundaria (6 stages) ---- */
+const WORK_PAIRS=[[6,3,2],[4,4,2],[6,6,3],[12,6,4],[8,8,4],[10,15,6],[20,30,12],[9,18,6],[15,10,6],[24,12,8]];
 function genRazonamiento(level){
   const impl=[
+    // 0: sucesiones (aritmética, geométrica o cuadrática)
     (t)=>{
-      const diff=rand(2,Math.max(2,lerp(2,15,t))), a0=rand(1,Math.max(1,lerp(1,35,t)));
-      const terms=[a0,a0+diff,a0+2*diff,a0+3*diff];
-      const ans=a0+4*diff;
-      const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-diff-1,-1,1,diff+1]));
-      return { text:`${terms.join(', ')}, ... ¿Qué número sigue?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`La secuencia suma ${diff} cada vez: ${terms[3]} + ${diff} = ${ans}`, hint:'Resta dos números seguidos para descubrir cuánto aumenta cada vez.' };
-    },
-    (t)=>{
-      const ratio=rand(2,Math.max(2,lerp(2,5,t))), start=rand(1,Math.max(1,lerp(1,8,t)));
-      const terms=[start, start*ratio, start*ratio*ratio, start*ratio*ratio*ratio];
-      const ans=terms[3]*ratio;
-      const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-ratio,-1,1,ratio]));
-      return { text:`${terms.join(', ')}, ... ¿Qué número sigue?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`Cada número se multiplica por ${ratio}: ${terms[3]} × ${ratio} = ${ans}`, hint:'Divide un número entre el anterior para descubrir por cuánto se multiplica.' };
-    },
-    (t)=>{
-      const x=rand(6,Math.max(6,lerp(10,60,t))), d=rand(1,Math.max(1,lerp(2,25,t)));
-      if(Math.random()<0.5){
-        const ans=x+d;
-        const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-2,-1,1,2]));
-        return { text:`Ale tiene ${x} años y su hermana tiene ${d} años más que ella. ¿Cuántos años tiene su hermana?`, options:mkOptions(fmt(ans)+' años',wrongs.map(w=>fmt(w)+' años')), explain:`Hermana = edad de Ale + ${d} = ${x} + ${d} = ${ans} años`, hint:'Primero identifica la edad que ya conoces, luego suma o resta lo que dice el problema.' };
+      const kind=rand(0,2);
+      if(kind===0){
+        const diff=rand(2,Math.max(2,lerp(2,15,t))), a0=rand(1,Math.max(1,lerp(1,35,t)));
+        const terms=[a0,a0+diff,a0+2*diff,a0+3*diff];
+        const ans=a0+4*diff;
+        const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-diff-1,-1,1,diff+1]));
+        return { text:`${terms.join(', ')}, ... ¿Qué número sigue?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`La secuencia suma ${diff} cada vez: ${terms[3]} + ${diff} = ${ans}`, hint:'Resta dos números seguidos para descubrir cuánto aumenta cada vez.' };
+      } else if(kind===1){
+        const ratio=rand(2,Math.max(2,lerp(2,5,t))), start=rand(1,Math.max(1,lerp(1,8,t)));
+        const terms=[start, start*ratio, start*ratio*ratio, start*ratio*ratio*ratio];
+        const ans=terms[3]*ratio;
+        const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-ratio,-1,1,ratio]));
+        return { text:`${terms.join(', ')}, ... ¿Qué número sigue?`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`Cada número se multiplica por ${ratio}: ${terms[3]} × ${ratio} = ${ans}`, hint:'Divide un número entre el anterior para descubrir por cuánto se multiplica.' };
       } else {
-        const xx=Math.max(x,d+1);
-        const ans=xx-d;
-        const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-2,-1,1,2]));
-        return { text:`Ale tiene ${xx} años. Hace ${d} años, ¿cuántos años tenía?`, options:mkOptions(fmt(ans)+' años',wrongs.map(w=>fmt(w)+' años')), explain:`Edad hace ${d} años = ${xx} − ${d} = ${ans} años`, hint:'Resta los años que han pasado a su edad actual.' };
+        const start=rand(1,Math.max(1,lerp(1,6,t)));
+        const terms=[0,1,2,3].map(i=>(start+i)*(start+i));
+        const ans=(start+4)*(start+4);
+        const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-5,-3,-2,2,3,5]));
+        return { text:`${terms.join(', ')}, ... ¿Qué número sigue? (son cuadrados perfectos)`, options:mkOptions(fmt(ans),wrongs.map(fmt)), explain:`Son los cuadrados de ${start}, ${start+1}, ${start+2}, ${start+3}, ${start+4}: el siguiente es ${start+4}² = ${ans}`, hint:'Fíjate si cada número es el cuadrado de un número que va aumentando de 1 en 1.' };
       }
     },
+    // 1: edades con planteamiento (dos datos combinados)
     (t)=>{
-      const n = t<0.5? 3 : rand(2,6);
-      const u=rand(1,Math.max(1,lerp(1,20,t))), p=u*n, k=rand(2,Math.max(2,lerp(2,15,t)));
-      const ans=u*k;
-      const wrongs=uniqueWrongsNum(ans, ()=>ans+choice([-u,-1,1,u]));
-      return { text:`Si ${n} cuadernos cuestan S/ ${p}, ¿cuánto cuestan ${k} cuadernos (al mismo precio)?`, options:mkOptions('S/ '+fmt(ans),wrongs.map(w=>'S/ '+fmt(w))), explain:`Cada cuaderno cuesta S/${p}÷${n} = S/${u}. Entonces ${k} cuadernos cuestan ${u}×${k} = S/${ans}`, hint:'Primero averigua cuánto cuesta uno solo, luego multiplica.' };
+      const sum=rand(20,Math.max(20,lerp(25,80,t)));
+      const diff=rand(2,Math.max(2,lerp(2,20,t)));
+      const menor=Math.round((sum-diff)/2), mayor=sum-menor;
+      const wrongs=uniqueWrongsNum(mayor, ()=>mayor+choice([-2,-1,1,2]));
+      return { text:`Entre Ale y su hermana suman ${sum} años. Ale es ${diff} años mayor que su hermana. ¿Cuántos años tiene Ale (la mayor)?`, options:mkOptions(fmt(mayor)+' años',wrongs.map(w=>fmt(w)+' años')), explain:`Si la menor tiene x, la mayor tiene x+${diff}. Juntas: x+(x+${diff})=${sum}, entonces x=${menor}. Ale tiene ${menor}+${diff}=${mayor} años`, hint:'Plantea una incógnita para la menor y súmale la diferencia para la mayor; luego arma la ecuación con la suma total.' };
     },
+    // 2: trabajo y tiempo
     (t)=>{
-      const n1=rand(1,5), p1=rand(1,Math.max(1,lerp(1,20,t))), n2=rand(1,5), p2=rand(1,Math.max(1,lerp(1,20,t)));
-      let total=n1*p1+n2*p2;
-      let extra='';
-      if(t>0.6){
-        const n3=rand(1,4), p3=rand(1,Math.max(1,lerp(1,15,t)));
-        total+=n3*p3;
-        extra=` y ${n3} ${n3===1?'chicle':'chicles'} a S/ ${p3} cada uno`;
-      }
-      const billStep = total<100? 10:50;
-      const bill=(Math.floor(total/billStep)+1)*billStep;
-      const change=bill-total;
-      const wrongs=uniqueWrongsNum(change, ()=>change+choice([-5,-2,2,5]));
-      return { text:`Ale compra ${n1} chocolates a S/ ${p1} cada uno y ${n2} galletas a S/ ${p2} cada una${extra}. Paga con un billete de S/ ${bill}. ¿Cuánto recibe de vuelto?`, options:mkOptions('S/ '+fmt(change),wrongs.map(w=>'S/ '+fmt(w))), explain:`Total gastado = S/${total}. Vuelto = ${bill} − ${total} = S/${change}`, hint:'Calcula primero cuánto gastó en total, y después resta del billete con que pagó.' };
+      const k=rand(1,Math.max(1,lerp(1,4,t)));
+      const [x0,y0,c0]=choice(WORK_PAIRS);
+      const x=x0*k, y=y0*k, c=c0*k;
+      const wrongs=uniqueWrongsNum(c, ()=>c+choice([-2,-1,1,2]));
+      return { text:`Ale hace un trabajo en ${x} días y su amiga lo hace en ${y} días. Si trabajan juntas, ¿en cuántos días terminan el trabajo?`, options:mkOptions(fmt(c)+' días',wrongs.map(w=>fmt(w)+' días')), explain:`Entre las dos hacen 1/${x}+1/${y} del trabajo por día. Juntas tardan (${x}×${y})÷(${x}+${y}) = ${c} días`, hint:'Súmales sus "velocidades" de trabajo (1 entre sus días) y luego invierte el resultado.' };
+    },
+    // 3: regla de tres compuesta
+    (t)=>{
+      const obreros1=rand(2,Math.max(2,lerp(2,10,t))), horas1=rand(2,Math.max(2,lerp(2,8,t))), dias1=rand(2,Math.max(2,lerp(2,10,t)));
+      const trabajoTotal=obreros1*horas1*dias1;
+      const obreros2=rand(2,Math.max(2,lerp(2,10,t)));
+      const horas2=rand(2,Math.max(2,lerp(2,8,t)));
+      const prod=obreros2*horas2;
+      const divisores=[];
+      for(let d=1; d<=trabajoTotal; d++) if(trabajoTotal%d===0 && (trabajoTotal/d)%1===0) divisores.push(d);
+      let dias2=Math.round(trabajoTotal/prod);
+      if(dias2<1) dias2=1;
+      const trabajoTotal2=obreros2*horas2*dias2;
+      const wrongs=uniqueWrongsNum(dias2, ()=>dias2+choice([-2,-1,1,2]));
+      return { text:`${obreros1} obreros trabajando ${horas1} horas diarias terminan una obra en ${dias1} días. ¿Cuántos días tardarán ${obreros2} obreros trabajando ${horas2} horas diarias (al mismo ritmo) en hacer una obra del mismo tamaño?`, options:mkOptions(fmt(dias2)+' días',wrongs.map(w=>fmt(w)+' días')), explain:`Trabajo total = obreros×horas×días = ${obreros1}×${horas1}×${dias1} = ${trabajoTotal} obrero-horas. Con ${obreros2} obreros y ${horas2}h/día: ${trabajoTotal}÷(${obreros2}×${horas2}) ≈ ${dias2} días`, hint:'Multiplica obreros por horas por días para hallar el trabajo total, luego despeja lo que preguntan.' };
+    },
+    // 4: probabilidad simple
+    (t)=>{
+      const rojas=rand(1,Math.max(1,lerp(2,15,t))), azules=rand(1,Math.max(1,lerp(2,15,t)));
+      const total=rojas+azules;
+      const g=gcd(rojas,total), sn=rojas/g, sd=total/g;
+      const correct=`${sn}/${sd}`;
+      const wrongsSet=new Set([`${azules}/${total}`, `${rojas}/${total}`, `${sn}/${sd+1}`, `${sn+1}/${sd}`].filter(w=>w!==correct));
+      return { text:`En una bolsa hay ${rojas} bolas rojas y ${azules} bolas azules. Si sacas una al azar, ¿cuál es la probabilidad de que sea roja?`, options:mkOptions(correct,[...wrongsSet].slice(0,3)), explain:`Probabilidad = casos favorables ÷ casos totales = ${rojas}/${total}, simplificado = ${correct}`, hint:'La probabilidad es: lo que buscas, dividido entre el total de bolas.' };
     }
   ];
   const {stage,t}=stageInfo(level,6);
@@ -2676,6 +2882,7 @@ function renderQuiz(){
     </div>
     <div class="progress-wrap"><div class="bar"><i style="width:${pct}%"></i></div></div>
     <div class="qcard">
+      ${q.svg ? `<div class="qfig">${q.svg}</div>` : ''}
       <div class="qtext">${esc(q.text)}</div>
     </div>
     ${hintRow}
