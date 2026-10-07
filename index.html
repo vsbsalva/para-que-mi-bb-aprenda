@@ -37,8 +37,9 @@ html,body{
 body{
   background-color:#090D16;
   background-image:
-    linear-gradient(rgba(9,13,22,0.10),rgba(9,13,22,0.10)),
-    url("fondo.png");
+    radial-gradient(circle at 15% 0%, rgba(229,9,47,0.16), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(240,239,196,0.08), transparent 50%),
+    linear-gradient(180deg, #090D16 0%, #121827 100%);
   background-repeat:no-repeat;
   background-position:center center;
   background-size:cover;
@@ -49,13 +50,6 @@ body{
   padding-block:0;
   position:relative;
   min-height:100vh;
-}
-@media (max-width:480px){
-  body{
-    background-size:auto 100vh;
-    background-position:center top;
-    background-attachment:scroll;
-  }
 }
 
 .hero-cat{
