@@ -3225,12 +3225,42 @@ function startSimulacro(){
   render();
 }
 
+/* ---------- sonido + vibración al responder ---------- */
+let _actx=null;
+function playTone(freq, startAt, dur, vol){
+  try{
+    if(!_actx) _actx = new (window.AudioContext||window.webkitAudioContext)();
+    if(_actx.state==='suspended') _actx.resume();
+    const t0=_actx.currentTime+startAt;
+    const osc=_actx.createOscillator();
+    const gain=_actx.createGain();
+    osc.type='sine'; osc.frequency.setValueAtTime(freq,t0);
+    gain.gain.setValueAtTime(0,t0);
+    gain.gain.linearRampToValueAtTime(vol,t0+0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001,t0+dur);
+    osc.connect(gain); gain.connect(_actx.destination);
+    osc.start(t0); osc.stop(t0+dur+0.02);
+  }catch(e){ /* audio not available, ignore */ }
+}
+function feedbackFX(wasCorrect){
+  if(wasCorrect){
+    playTone(523.25,0,0.14,0.18);
+    playTone(783.99,0.12,0.18,0.16);
+  } else {
+    playTone(196,0,0.22,0.15);
+  }
+  if(navigator.vibrate){
+    navigator.vibrate(wasCorrect ? 40 : [60,40,60]);
+  }
+}
+
 function simulacroAnswer(idx){
   const sim=VIEW.sim;
   if(sim.answered) return;
   sim.answered=true; sim.chosen=idx;
   const cur=sim.items[sim.idx];
   const wasCorrect = cur.question.options[idx].correct;
+  feedbackFX(wasCorrect);
   const tName=topicMeta(cur.subjId).name;
   if(!sim.byTopic[tName]) sim.byTopic[tName]={correct:0,total:0};
   sim.byTopic[tName].total++;
@@ -3259,6 +3289,7 @@ function answer(idx){
   const t=topicMeta(VIEW.topicId);
   const st=STATE.topics[t.id];
   const wasCorrect = VIEW.question.options[idx].correct;
+  feedbackFX(wasCorrect);
 
   STATE.totalAnswered++;
   st.answered++;
